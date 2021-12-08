@@ -1,0 +1,5 @@
+.vscode/
+.antlr/
+build/
+cmake-build-debug/
+/gen/

@@ -1,0 +1,49 @@
+int a;
+a = 1;
+
+if (?) {
+    a = a - 1;
+    while (?) {
+        a = a + 1;
+    }
+}
+
+
+
+a = a + 1;
+
+assert(a != 0);
+
+   map<set<uint32_t>, uint32_t> mergeStatesMap;
+
+    for (const auto& t : markingTable) {
+        if (t.second == false) {
+            auto& p = t.first;
+            uint32_t  s1 = p.first;
+            uint32_t s2 = p.second;
+
+            for (const auto& it: mergeStatesMap) {
+
+            }
+        }
+
+    }
+
+
+    int a;
+    a = 1;
+
+    int b = 1;
+
+    while (b > 0) {
+        if (?) {
+            a++;
+        }
+
+        b++;
+        a++;
+    }
+
+
+    assert(a != 0);
+    assert(b != 0);

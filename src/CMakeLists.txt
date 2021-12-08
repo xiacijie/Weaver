@@ -1,0 +1,77 @@
+# minimum required CMAKE version
+CMAKE_MINIMUM_REQUIRED(VERSION 3.7 FATAL_ERROR)
+
+project(weaver)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+# compiler must be 17
+set(CMAKE_CXX_STANDARD 17)
+
+# required if linking to static library
+add_definitions(-DANTLR4CPP_STATIC)
+
+# using /MD flag for antlr4_runtime (for Visual C++ compilers only)
+set(ANTLR4_WITH_STATIC_CRT OFF)
+# add external build for antlrcpp
+include(ExternalAntlr4Cpp)
+# add antrl4cpp artifacts to project environment
+include_directories(${ANTLR4_INCLUDE_DIRS} )
+
+# set variable pointing to the antlr tool that supports C++
+# this is not required if the jar file can be found under PATH environment
+set(ANTLR_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/bin/antlr4/antlr-4.9.2-complete.jar)
+# add macros to generate ANTLR Cpp code from grammar
+find_package(ANTLR REQUIRED)
+find_package(Threads)
+
+
+# Call macro to add lexer and grammar to your build dependencies.
+antlr_target(WeaverGrammarLexer ${CMAKE_CURRENT_SOURCE_DIR}/grammar/WeaverLexer.g4
+            LEXER VISIOR OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/frontend
+            PACKAGE weaver)
+antlr_target(WeaverGrammarParser ${CMAKE_CURRENT_SOURCE_DIR}/grammar/WeaverParser.g4
+            PARSER VISITOR OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/frontend
+            PACKAGE weaver
+            DEPENDS_ANTLR WeaverGrammarLexer
+            COMPILE_FLAGS -lib ${ANTLR_WeaverGrammarLexer_OUTPUT_DIR})
+
+# include generated files in project environment
+include_directories(${ANTLR_WeaverGrammarLexer_OUTPUT_DIR})
+include_directories(${ANTLR_WeaverGrammarParser_OUTPUT_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/libs/program)
+include_directories(${PROJECT_SOURCE_DIR}/libs/cfg)
+include_directories(${PROJECT_SOURCE_DIR}/libs/ast)
+include_directories(${PROJECT_SOURCE_DIR}/libs/automata)
+include_directories(${PROJECT_SOURCE_DIR}/libs/verifier)
+include_directories(${PROJECT_SOURCE_DIR}/libs/util)
+
+# add generated grammar to weaver binary target
+add_executable(${PROJECT_NAME} 
+               weaver.cpp
+               ${ANTLR_WeaverGrammarLexer_CXX_OUTPUTS}
+               ${ANTLR_WeaverGrammarParser_CXX_OUTPUTS}
+        ${PROJECT_SOURCE_DIR}/libs/program/Program.cpp
+        ${PROJECT_SOURCE_DIR}/libs/program/Statement.cpp
+        ${PROJECT_SOURCE_DIR}/libs/program/Thread.cpp
+        ${PROJECT_SOURCE_DIR}/libs/cfg/CFGBuilder.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/AST.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/ASTNode.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/VariableTable.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/FiniteAutomataBase.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/NFA.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/DFA.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/LoopingTreeAutomata.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/ASTBuilder.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/InterpolantAutomataBuilder.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/TheoremProverBase.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/SMTInterpol.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/SequentialProgramVerifier.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/ParallelProgramVerifier.cpp
+        ${PROJECT_SOURCE_DIR}/libs/util/util.cpp
+       )
+# the global path for theorem prover binaries
+add_definitions(-DSMT_INTERPOL_BIN_PATH=\"${PROJECT_SOURCE_DIR}/bin/smt-interpol/smt-interpol.jar\")
+
+target_link_libraries(weaver antlr4_static)
+target_link_libraries(weaver ${CMAKE_THREAD_LIBS_INIT})
