@@ -30,7 +30,7 @@ namespace weaver{
         Alphabet& getAlphabet() { return _alphabet; }
 
         void addASTNodeToPool(ASTNode* node) { _nodePool.push_back(node); }
-        void addStatementToPool(Statement* stmt) { _statementPool.push_back(stmt); }
+        void addStatementToPool(Statement* stmt) { _statementPool.push_back(stmt); _statementsByThread[stmt->getThreadID()].insert(stmt); }
 
 //        vector<Thread>& getParallelThreads(uint32_t state);
 //        bool isParallelState(uint32_t state) { return _threads.find(state) != _threads.end(); }
@@ -65,6 +65,9 @@ namespace weaver{
         string independentStatementsToString();
 
         uint16_t getNextThreadID() { return _totalThreads++; }
+        uint16_t getTotalNumThreads() const { return _totalThreads; }
+
+        const unordered_set<Statement*>& getStatementsByThread(uint16_t threadID) const;
 
     private:
         void deallocateASTNodePool() { for (const auto& n : _nodePool) delete n; }
@@ -84,6 +87,9 @@ namespace weaver{
         uint16_t _totalThreads;
 
         unordered_map<Statement*, unordered_set<Statement*>> _dependenceRelation;
+
+        // disjoint statements by their thread number
+        unordered_map<uint16_t, unordered_set<Statement*>> _statementsByThread;
     };
 
 }

@@ -1,9 +1,11 @@
-int a;
-int b;
+int a = 0;
 
-b = 1;
-assume(a > 0 && a == 1);
+parallel(2)
+{
+    a++;
+}
+{
+    a--;
+}
 
-a++;
-
-assert( a != 2);
+assert( a == 0);

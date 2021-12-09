@@ -67,7 +67,15 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
     set<Trace> result;
 
     // set the reduction ordering R
-    vector<Statement*> R(_program->getAlphabet().begin(), _program->getAlphabet().end());
+    // The ordering uses the partition optimization
+    // Note that the main thread is dependent with any other threads
+    vector<const unordered_set<Statement*>*> R;
+
+    R.reserve(_program->getTotalNumThreads());
+    for (int i = 1; i < _program->getTotalNumThreads(); i ++) {
+        R.push_back(&_program->getStatementsByThread(i));
+    }
+
     sort(R.begin(), R.end());
 
     // construct the LTA and checking the emptiness on the fly
@@ -91,7 +99,7 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
 
         workList.pop();
 
-//        do {
+        do {
 
             auto currentLTAState = currentIntersectionState.first;
             auto currentProofDFAState = currentIntersectionState.second;
@@ -141,7 +149,16 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
                             next_q = s;
                             next_i = i || (sleepSet.find(statement) != sleepSet.end());
 
-                            set<Statement*> R_a( R.begin(), find(R.begin(), R.end(), statement));
+                            set<Statement*> R_a;
+                            for (const auto & set : R) {
+                                if (set->find(statement) != set->end()) {
+                                    break;
+                                }
+                                else {
+                                    R_a.insert(set->begin(), set->end());
+                                }
+                            }
+
                             set<Statement*> S_union_R_a;
                             S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
                             S_union_R_a.insert(R_a.begin(), R_a.end());
@@ -176,7 +193,7 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
                     }
                 }
             }
-//        } while (next_permutation(R.begin(), R.end()));
+        } while (next_permutation(R.begin(), R.end()));
     }
 
     return result;

@@ -10,6 +10,14 @@ using namespace std;
 //    return it->second;
 //}
 
+
+const unordered_set<Statement*>& Program::getStatementsByThread(uint16_t threadID) const {
+    const auto& it = _statementsByThread.find(threadID);
+
+    assert(it != _statementsByThread.end() && "Error");
+    return it->second;
+}
+
 string Program::dependentStatementsToString() {
     stringstream ss;
     ss << "Dependent Statements:" << endl;
