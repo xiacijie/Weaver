@@ -1,18 +1,9 @@
 int a;
+int b;
 
-a = 1;
+b = 1;
+assume(a > 0 && a == 1);
 
-parallel(2)
-{
+a++;
 
-        a++;
-
-
-}
-{
-
-       a--;
-
-}
-
-assert(a != 0);
+assert( a != 2);

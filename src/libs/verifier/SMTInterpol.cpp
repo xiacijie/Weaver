@@ -26,8 +26,8 @@ bool SMTInterpol::checkIndependenceRelation(Statement *s1, Statement *s2) const 
     SSANumberingTable ssaNumberingTable;
 
     // generate the SMT formulas for s1s2
-    string s1Formula1 = getFormula(s1->getNode(), ssaNumberingTable);
-    string s2Formula1 = getFormula(s2->getNode(), ssaNumberingTable);
+    string s1Formula1 = getFormula(s1->getNode(), s1, ssaNumberingTable);
+    string s2Formula1 = getFormula(s2->getNode(), s2, ssaNumberingTable);
 
     vector<pair<string, uint16_t>> varsNotInitialized1;
     while (!ssaNumberingTable.isNotInitializedVarQueueEmpty()) {
@@ -55,8 +55,8 @@ bool SMTInterpol::checkIndependenceRelation(Statement *s1, Statement *s2) const 
     ssaNumberingTable.uninitializeAllVars();
 
     // generate the SMT formulas for s2s1
-    string s2Formula2 = getFormula(s2->getNode(), ssaNumberingTable);
-    string s1Formula2 = getFormula(s1->getNode(), ssaNumberingTable);
+    string s2Formula2 = getFormula(s2->getNode(), s2, ssaNumberingTable);
+    string s1Formula2 = getFormula(s1->getNode(), s1, ssaNumberingTable);
 
     vector<pair<string, uint16_t>> varsNotInitialized2;
     while (!ssaNumberingTable.isNotInitializedVarQueueEmpty()) {
@@ -137,7 +137,7 @@ Interpolants SMTInterpol::generateInterpols(const Trace& trace) const {
         Statement* stmt = trace[i];
         ASTNode* node = stmt->getNode();
 
-        string formula = getFormula(node, ssaNumberingTable);
+        string formula = getFormula(node, stmt, ssaNumberingTable);
 
         if (!ssaNumberingTable.isNotInitializedVarQueueEmpty()) {
             while (!ssaNumberingTable.isNotInitializedVarQueueEmpty()) {
@@ -173,9 +173,11 @@ Interpolants SMTInterpol::generateInterpols(const Trace& trace) const {
     }
 
     SMTFile << getInterpolants(labels);
+    cout << SMTFile.str() << endl;
 
     string result = exec(getCommand(SMTFile.str()));
 
+    cout << result << endl;
     if (result.substr(0, 6) == "(error") {
         assert(false && "Error with the theorem prover!\n");
     }

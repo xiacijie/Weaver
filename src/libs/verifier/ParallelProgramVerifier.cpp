@@ -6,6 +6,8 @@ using namespace weaver;
 using namespace std;
 
 bool ParallelProgramVerifier::verify() {
+    bool correct = false;
+
     Program* program = _program;
     NFA* cfg = &program->getCFG();
 
@@ -30,22 +32,34 @@ bool ParallelProgramVerifier::verify() {
                 for (auto t : errorTrace) {
                     cerr << t->toString() << endl;
                 }
-                return false;
+
+                break;
             }
 
             NFA* interpolAutomata = InterpolantAutomataBuilder::build(errorTrace, interpols, prover, program);
             DFA* DInterpolAutomata = interpolAutomata->convertToDFA(program->getAlphabet());
+            delete interpolAutomata;
+
             DInterpolAutomata->minimize(program->getAlphabet());
 
+            DFA* lastProofAutomata = proof;
+
             proof = proof->Union(DInterpolAutomata, program->getAlphabet());
+            delete DInterpolAutomata;
+            delete lastProofAutomata;
         }
         else {
             cout << "***********************************************" << endl;
             cout << "**   End: The program is verified correct!   **" << endl;
             cout << "***********************************************" << endl;
-            return true;
+
+            correct = true;
+            break;
         }
     }
+
+    delete prover;
+    return correct;
 }
 
 
@@ -77,84 +91,92 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
 
         workList.pop();
 
-        auto currentLTAState = currentIntersectionState.first;
-        auto currentProofDFAState = currentIntersectionState.second;
+//        do {
 
-        const auto& sleepSet = get<set<Statement*>>(currentLTAState);
+            auto currentLTAState = currentIntersectionState.first;
+            auto currentProofDFAState = currentIntersectionState.second;
 
-        auto q = get<uint32_t>(currentLTAState);
-        auto i = get<bool>(currentLTAState);
+            const auto& sleepSet = get<set<Statement*>>(currentLTAState);
 
-        intersectionStates.insert(currentIntersectionState);
+            auto q = get<uint32_t>(currentLTAState);
+            auto i = get<bool>(currentLTAState);
 
-        // verify the next available transitions
-        bool B_LTA = cfg->isAcceptState(get<uint32_t>(currentLTAState)) && !i;
+            intersectionStates.insert(currentIntersectionState);
 
-        if (!proof->isAcceptState(currentProofDFAState)) {
-            if (B_LTA == true) { // we found an inactive state
+            // verify the next available transitions
+            bool B_LTA = cfg->isAcceptState(get<uint32_t>(currentLTAState)) && !i;
 
-                result.insert(currentTrace);
-                return result;
+            if (!proof->isAcceptState(currentProofDFAState)) {
+                if (B_LTA == true) { // we found an inactive state
+                    cerr << "Inactive State Found!" << endl;
+
+                    for (const auto& s: currentTrace) {
+                        cerr << s->toString() << endl;
+                    }
+
+                    result.insert(currentTrace);
+                    return result;
+                }
             }
-        }
 
-        if (cfg->hasTransitionFrom(q)) {
-            for (const auto & t: cfg->getTransitions(q)) {
-                Statement* statement = t.first;
-                const unordered_set<uint32_t>& targetStates = t.second;
+            if (cfg->hasTransitionFrom(q)) {
+                for (const auto & t: cfg->getTransitions(q)) {
+                    Statement* statement = t.first;
+                    const unordered_set<uint32_t>& targetStates = t.second;
 
-                for (const auto& s: targetStates) {
-                    uint32_t next_q;
-                    bool next_i;
-                    set<Statement*> nextSleepSet;
+                    for (const auto& s: targetStates) {
+                        uint32_t next_q;
+                        bool next_i;
+                        set<Statement*> nextSleepSet;
 
-                    uint32_t nextProofDFAState;
+                        uint32_t nextProofDFAState;
 
-                    if (statement == nullptr) { // epsilon transition
-                        next_q = s;
-                        next_i = i;
-                        nextSleepSet.insert(sleepSet.begin(), sleepSet.end());
-                        nextProofDFAState = currentProofDFAState;
-                    }
-                    else {
-                        next_q = s;
-                        next_i = i || (sleepSet.find(statement) != sleepSet.end());
+                        if (statement == nullptr) { // epsilon transition
+                            next_q = s;
+                            next_i = i;
+                            nextSleepSet.insert(sleepSet.begin(), sleepSet.end());
+                            nextProofDFAState = currentProofDFAState;
+                        }
+                        else {
+                            next_q = s;
+                            next_i = i || (sleepSet.find(statement) != sleepSet.end());
 
-                        set<Statement*> R_a( R.begin(), find(R.begin(), R.end(), statement));
-                        set<Statement*> S_union_R_a;
-                        S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
-                        S_union_R_a.insert(R_a.begin(), R_a.end());
+                            set<Statement*> R_a( R.begin(), find(R.begin(), R.end(), statement));
+                            set<Statement*> S_union_R_a;
+                            S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
+                            S_union_R_a.insert(R_a.begin(), R_a.end());
 
-                        set<Statement*> S_union_R_a_minus_D_a;
-                        const auto& D_a = _program->getDependentStatements(statement);
+                            set<Statement*> S_union_R_a_minus_D_a;
+                            const auto& D_a = _program->getDependentStatements(statement);
 
-                        for (const auto& ss : S_union_R_a) {
-                            if (D_a.find(ss) == D_a.end()) {
-                                S_union_R_a_minus_D_a.insert(ss);
+                            for (const auto& ss : S_union_R_a) {
+                                if (D_a.find(ss) == D_a.end()) {
+                                    S_union_R_a_minus_D_a.insert(ss);
+                                }
                             }
+
+                            nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
+                            nextProofDFAState = proof->getTargetState(currentProofDFAState, statement);
+
                         }
 
-                        nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
-                        nextProofDFAState = proof->getTargetState(currentProofDFAState, statement);
+                        tuple<uint32_t, bool, set<Statement*>> nextLTAState(next_q, next_i, nextSleepSet);
 
-                    }
+                        auto nextIntersectionState = make_pair(nextLTAState, nextProofDFAState);
 
-                    tuple<uint32_t, bool, set<Statement*>> nextLTAState(next_q, next_i, nextSleepSet);
+                        if (intersectionStates.find(nextIntersectionState) == intersectionStates.end()) {
+                            Trace nextTrace(currentTrace.begin(), currentTrace.end());
 
-                    auto nextIntersectionState = make_pair(nextLTAState, nextProofDFAState);
+                            if (statement) {
+                                nextTrace.push_back(statement);
+                            }
 
-                    if (intersectionStates.find(nextIntersectionState) == intersectionStates.end()) {
-                        Trace nextTrace(currentTrace.begin(), currentTrace.end());
-
-                        if (statement) {
-                            nextTrace.push_back(statement);
+                            workList.push(make_pair(make_pair(nextLTAState, nextProofDFAState), nextTrace));
                         }
-
-                        workList.push(make_pair(make_pair(nextLTAState, nextProofDFAState), nextTrace));
                     }
                 }
             }
-        }
+//        } while (next_permutation(R.begin(), R.end()));
     }
 
     return result;

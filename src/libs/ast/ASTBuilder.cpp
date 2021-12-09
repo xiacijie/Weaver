@@ -72,7 +72,7 @@ Any ASTBuilder::visitVarDeclarationStatement(WeaverParser::VarDeclarationStateme
         throwError("Cannot declare a Variable inside a Block!");
     }
 
-    auto assignmentStatements = new vector<ASTNode*>();
+    vector<ASTNode*> assignments;
 
     for (const auto& singleVarDecl : body->singleVarDeclaration()) {
 
@@ -84,11 +84,21 @@ Any ASTBuilder::visitVarDeclarationStatement(WeaverParser::VarDeclarationStateme
         // if it is an assignment
         if (singleVarDecl->assignment()) {
             ASTNode* assignmentNode = visitAssignment(singleVarDecl->assignment()).as<ASTNode*>();
-            assignmentStatements->push_back(assignmentNode);
+            assignments.push_back(assignmentNode);
         }
     }
 
-    return assignmentStatements;
+    if (assignments.empty()) {
+        return nullptr;
+    }
+    else  if (assignments.size() == 1) {
+        return assignments[0];
+    }
+    else {
+        auto atomicNode = ASTNode::create(NodeType::Atomic, DataType::NoType, _program,assignments);
+        return atomicNode;
+    }
+
 }
 
 Any ASTBuilder::visitProgram(WeaverParser::ProgramContext *ctx) {
@@ -105,15 +115,6 @@ Any ASTBuilder::visitProgram(WeaverParser::ProgramContext *ctx) {
                 ASTNode* node = statementNode.as<ASTNode*>();
                 children.push_back(node);
             }
-            else if (statementNode.is<vector<ASTNode*>*>()) {
-                auto statements = statementNode.as<vector<ASTNode*>*>();
-                for (const auto& statement: *statements) {
-                    children.push_back(statement);
-                }
-
-                delete statements;
-            }
-
         }
     }
 
@@ -376,16 +377,30 @@ Any ASTBuilder::visitBlock(WeaverParser::BlockContext *ctx) {
 }
 
 Any ASTBuilder::visitAtomicStatement(WeaverParser::AtomicStatementContext *ctx) {
-    ASTNode* blockNode = visitBlock(ctx->block()).as<ASTNode*>();
-    for (int i =0 ; i < blockNode->getNumChildren(); i ++) {
-        ASTNode* child = blockNode->getChild(i);
+    if (ctx->block()->statement().empty()) {
+        throwError("Empty Atomic is not allowed!");
+    }
 
-        if (!child->isAssign()) {
-            throwError("Invalid Atomic Syntax, only Assignment Statement can be in Atomic!");
+    vector<ASTNode*> statements;
+
+    for (WeaverParser::StatementContext* s : ctx->block()->statement()) {
+
+        Any statementNode = WeaverParserBaseVisitor::visitStatement(s);
+
+        if (statementNode.isNotNull()) {
+            if (statementNode.is<ASTNode *>()) {
+                ASTNode *node = statementNode.as<ASTNode *>();
+
+                if (!node->isAssign()) {
+                    throwError("Invalid Atomic Syntax, only Assignment Statement can be in Atomic!");
+                }
+
+                statements.push_back(node);
+            }
         }
     }
 
-    auto atomicNode = ASTNode::create(NodeType::Atomic, DataType::NoType, _program, {blockNode});
+    auto atomicNode = ASTNode::create(NodeType::Atomic, DataType::NoType, _program, statements);
     return atomicNode;
 }
 

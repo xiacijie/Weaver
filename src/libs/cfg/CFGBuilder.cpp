@@ -90,12 +90,8 @@ uint32_t CFGBuilder::handleStatementWithNoControlFlow(ASTNode *node, uint32_t cu
 
         _cfg->addState(targetState);
 
-        if (node->isAssume()) {
-            addTransition(currentState, createStatement(node->getChild(0)), targetState);
-        }
-        else { // assignment or atomic
-            addTransition(currentState, createStatement(node), targetState);
-        }
+        // assignment or atomic or assume
+        addTransition(currentState, createStatement(node), targetState);
 
         return targetState;
     }

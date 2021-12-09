@@ -17,7 +17,7 @@ Statement* Statement::create(ASTNode *node, Program *program, uint16_t thread) {
     bool allowed = false;
 
     // we only allow a subset of ASTNode to be turned into a statement
-    if (node->isAssign() || node->isBool() || node->isNoAction() || node->isAtomic()) {
+    if (node->isAssign() || node->isAssume() || node->isBool() || node->isNoAction() || node->isAtomic()) {
         allowed = true;
     }
 

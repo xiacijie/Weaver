@@ -30,8 +30,10 @@ namespace weaver {
     class SSANumberingTable {
     public:
         uint16_t getVersionNumber(const string& varName);
-        bool isVarInitialized(const string& varName) { return _varsInitializedSet.find(varName) != _varsInitializedSet.end(); }
-        void initializeVar(const string& varName) { _varsInitializedSet.insert(varName); }
+        bool isVarInitialized(const string& varName) { return _varsInitializedMap.find(varName) != _varsInitializedMap.end(); }
+        Statement* getInitializationStatement(const string& varName);
+
+        void initializeVar(const string& varName, Statement* stmt) { _varsInitializedMap[varName] = stmt; }
 
         void uninitializeVar(const string& varName);
         void uninitializeAllVars();
@@ -39,7 +41,7 @@ namespace weaver {
         bool inNumberTable(const string& varName) { return _numberTable.find(varName) != _numberTable.end(); }
 
         void declareNotInitializedVar(const string& varName);
-        void declareInitializedVar(const string& varName);
+        void declareInitializedVar(const string& varName, Statement* stmt);
 
         pair<string, uint16_t> popInitializedVar();
         pair<string, uint16_t> popNotInitializedVar();
@@ -60,7 +62,8 @@ namespace weaver {
         queue<pair<string, uint16_t>> _varsNotInitialized;
 
         // Holds variables that are initialized
-        unordered_set<string> _varsInitializedSet;
+        // <var, initialization statement>
+        unordered_map<string, Statement*> _varsInitializedMap;
     };
 
     /**
@@ -102,7 +105,7 @@ namespace weaver {
         {return varName + SSA_DELIMITER + to_string(i); }
 
         virtual string getVarDeclaration(const string &varName, DataType dType) const;
-        virtual string getFormula(ASTNode* expr, SSANumberingTable& ssaNumberingTable, bool isLeftValue=false) const;
+        virtual string getFormula(ASTNode* expr, Statement* stmt, SSANumberingTable& ssaNumberingTable, bool isLeftValue=false, bool insideAssume=false) const;
 
         virtual inline string parenEnclose(const string& s) const
         { return "(" + s + ")"; }

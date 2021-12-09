@@ -123,7 +123,6 @@ namespace weaver {
         string toString(bool readableText=false) const;
 
         uint32_t getNodeID() const { return _nodeID; }
-        ASTNode* getParent() const { return _parent; }
 
         string getReadableText() const;
 
@@ -131,15 +130,13 @@ namespace weaver {
         ASTNode(NodeType nType, DataType dType, uint32_t nodeID) :
                 _nType(nType) ,
                 _dType(dType),
-                _nodeID(nodeID),
-                _parent(nullptr)
-        {};
+                _nodeID(nodeID)
+        {}
 
-        void addChild(ASTNode* node) { _children.push_back(node); node->setParent(this); }
+        void addChild(ASTNode* node) { _children.push_back(node); }
         void setInt(int64_t i) { assert(isIntConst() && "Not an Integer!\n"); _intVal = i; }
         void setBool(BooleanValue b) { assert(isBoolConst() && "Not a Boolean!\n"); _boolVal = b; }
         void setIdName(string s) { assert(isId() && "Not an Identifier!\n"); _idName = s; }
-        void setParent(ASTNode* parent) { _parent = parent; }
 
         static string getBinaryOpText(NodeType type);
         static string getUnaryOpText(NodeType type);
@@ -154,7 +151,6 @@ namespace weaver {
 
         uint32_t _nodeID;
 
-        ASTNode* _parent;
         DataType _dType;
         NodeType _nType;
 

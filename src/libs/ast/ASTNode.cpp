@@ -141,8 +141,6 @@ string ASTNode::getUnaryOpText(NodeType type) {
     }
 }
 
-
-
 string ASTNode::toString(bool readableText) const {
     string s;
     string nodeTypeLabel = NodeTypeLabels[_nType];
@@ -180,6 +178,10 @@ string ASTNode::getReadableText() const {
         return getChild(0)->getReadableText() + " = " + getChild(1)->getReadableText();
     }
 
+    if (isAssume()) {
+        return getChild(0)->getReadableText();
+    }
+
     if (isId()) {
         return getIdName();
     }
@@ -198,10 +200,10 @@ string ASTNode::getReadableText() const {
 
     if (isAtomic()) {
         vector<string> statementsText;
-        statementsText.reserve(getChild(0)->getNumChildren());
+        statementsText.reserve(getNumChildren());
 
-        for (int i = 0; i < getChild(0)->getNumChildren(); i ++) {
-            statementsText.push_back(getChild(0)->getChild(i)->getReadableText());
+        for (int i = 0; i < getNumChildren(); i ++) {
+            statementsText.push_back(getChild(i)->getReadableText());
         }
 
         return join(statementsText, "; ");

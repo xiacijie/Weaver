@@ -25,7 +25,7 @@ uint16_t SSANumberingTable::getVersionNumber(const string &varName) {
     return _numberTable[varName];
 }
 
-void SSANumberingTable::declareInitializedVar(const string &varName) {
+void SSANumberingTable::declareInitializedVar(const string &varName,Statement* stmt) {
     if (!inNumberTable(varName)) {
         _numberTable[varName] = 0;
     }
@@ -34,7 +34,14 @@ void SSANumberingTable::declareInitializedVar(const string &varName) {
     }
 
     enqueueVarInitialized(make_pair(varName, _numberTable[varName]));
-    initializeVar(varName);
+    initializeVar(varName, stmt);
+}
+
+Statement* SSANumberingTable::getInitializationStatement(const string &varName) {
+    const auto& it = _varsInitializedMap.find(varName);
+    assert(it != _varsInitializedMap.end() && "Error");
+
+    return it->second;
 }
 
 pair<string, uint16_t> SSANumberingTable::popInitializedVar() {
@@ -57,11 +64,11 @@ pair<string, uint16_t> SSANumberingTable::popNotInitializedVar() {
 void SSANumberingTable::uninitializeVar(const string &varName) {
     assert(!isVarInitialized(varName) && "Error");
 
-    _varsInitializedSet.erase(_varsInitializedSet.find(varName));
+    _varsInitializedMap.erase(_varsInitializedMap.find(varName));
 }
 
 void SSANumberingTable::uninitializeAllVars() {
-    _varsInitializedSet.clear();
+    _varsInitializedMap.clear();
 }
 
 string TheoremProverBase::exec(const string &command) const {
@@ -93,12 +100,12 @@ string TheoremProverBase::getVarDeclaration(const string &varName, DataType dTyp
     return decl;
 }
 
-string TheoremProverBase::getFormula(ASTNode *node, SSANumberingTable& ssaNumberingTable, bool isLeftValue) const {
+string TheoremProverBase::getFormula(ASTNode *node, Statement* stmt, SSANumberingTable& ssaNumberingTable, bool isLeftValue, bool insideAssume) const {
     // Left value is the left-hand side of an assignment statement
     // Need to update the ssa numbering table
     if (isLeftValue) {
         string varName = node->getIdName();
-        ssaNumberingTable.declareInitializedVar(varName);
+        ssaNumberingTable.declareInitializedVar(varName, stmt);
     }
 
     if (node->isNoAction()) {
@@ -106,16 +113,15 @@ string TheoremProverBase::getFormula(ASTNode *node, SSANumberingTable& ssaNumber
     }
 
     if (node->isAtomic()) {
-        ASTNode* block = node->getChild(0);
-        if (block->getNumChildren() == 1) {
-            return getFormula(block->getChild(0), ssaNumberingTable);
+        if (node->getNumChildren() == 1) {
+            return getFormula(node->getChild(0), stmt, ssaNumberingTable);
         }
 
         vector<string> statementFormulas;
-        statementFormulas.reserve(block->getNumChildren());
-        for (int i = 0; i < block->getNumChildren(); i ++) {
-            ASTNode* child = block->getChild(i);
-            statementFormulas.push_back(getFormula(child, ssaNumberingTable));
+        statementFormulas.reserve(node->getNumChildren());
+        for (int i = 0; i < node->getNumChildren(); i ++) {
+            ASTNode* child = node->getChild(i);
+            statementFormulas.push_back(getFormula(child, stmt, ssaNumberingTable));
         }
 
         string conjunctStatements = getAndFormula(statementFormulas[0], statementFormulas[1]);
@@ -124,6 +130,10 @@ string TheoremProverBase::getFormula(ASTNode *node, SSANumberingTable& ssaNumber
         }
 
         return conjunctStatements;
+    }
+
+    if (node->isAssume()) {
+        return getFormula(node->getChild(0), stmt, ssaNumberingTable, false, true);
     }
 
     if (node->isId()) { // get the ssa version of this variable
@@ -151,18 +161,42 @@ string TheoremProverBase::getFormula(ASTNode *node, SSANumberingTable& ssaNumber
     }
 
     if (node->getNodeType() == NodeType::Not) {
-        return getNotFormula(getFormula(node->getChild(0), ssaNumberingTable));
+        return getNotFormula(getFormula(node->getChild(0), stmt, ssaNumberingTable));
     }
     else if (node->getNodeType() == NodeType::Negation) {
-        return getNegationFormula(getFormula(node->getChild(0), ssaNumberingTable));
+        return getNegationFormula(getFormula(node->getChild(0), stmt, ssaNumberingTable));
     }
-    else { //evaluate the right-hand side first, then the left-hand side
-        string right = getFormula(node->getChild(1), ssaNumberingTable);
+    else {
+        string left;
+        string right;
+
         if (node->isAssign()) {
-            isLeftValue = true;
+            right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
+            left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
+        }
+        else if (insideAssume) {
+            if (node->getChild(0)->isId()) {
+                const string& varName = node->getChild(0)->getIdName();
+                if (!ssaNumberingTable.isVarInitialized(varName)) {
+                    right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
+                    left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
+                }
+                else {
+                    Statement* initializationStatement = ssaNumberingTable.getInitializationStatement(varName);
+                    if (initializationStatement != stmt) { // different statements, introduce new ssa numbers
+                        right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
+                        left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
+                    }
+                }
+            }
         }
 
-        string left = getFormula(node->getChild(0), ssaNumberingTable, isLeftValue);
+        if (left.empty() && right.empty()) {
+            left = getFormula(node->getChild(0), stmt, ssaNumberingTable, false, insideAssume);
+            right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
+        }
+
+
 
         switch (node->getNodeType()) {
             case NodeType::Addition:
