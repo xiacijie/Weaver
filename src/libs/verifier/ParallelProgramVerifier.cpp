@@ -19,7 +19,12 @@ bool ParallelProgramVerifier::verify() {
 
     SMTInterpol* prover = new SMTInterpol(program);
 
+    int round = 1;
     while (true) {
+        cout << "=========== Round: " << round++ << " ==============" << endl;
+//        cout << "Proof: " << endl;
+//        cout << proof->toString(_program->getAlphabet()) << endl;
+
         auto errorTraceSet = getErrorTraces(cfg, proof);
         if (errorTraceSet.size() == 1) {
             const Trace& errorTrace = *errorTraceSet.begin();
@@ -99,7 +104,7 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
 
         workList.pop();
 
-        do {
+//        do {
 
             auto currentLTAState = currentIntersectionState.first;
             auto currentProofDFAState = currentIntersectionState.second;
@@ -108,6 +113,8 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
 
             auto q = get<uint32_t>(currentLTAState);
             auto i = get<bool>(currentLTAState);
+
+//            cout << "q: " << q << " i: " << i << endl;
 
             intersectionStates.insert(currentIntersectionState);
 
@@ -193,7 +200,7 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
                     }
                 }
             }
-        } while (next_permutation(R.begin(), R.end()));
+//        } while (next_permutation(R.begin(), R.end()));
     }
 
     return result;

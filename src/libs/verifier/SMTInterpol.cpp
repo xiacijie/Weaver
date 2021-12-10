@@ -172,10 +172,11 @@ Interpolants SMTInterpol::generateInterpols(const Trace& trace) const {
         labels.push_back(FORMULA_LABEL + to_string(i));
     }
 
+    cout << SMTFile.str() << endl;
     SMTFile << getInterpolants(labels);
 
     string result = exec(getCommand(SMTFile.str()));
-
+    cout << result << endl;
     if (result.substr(0, 6) == "(error") {
         assert(false && "Error with the theorem prover!\n");
     }

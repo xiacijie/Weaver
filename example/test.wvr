@@ -1,3 +1,4 @@
+/*
 int a = 0;
 
 parallel(2)
@@ -8,4 +9,23 @@ parallel(2)
     a--;
 }
 
-assert( a == 0);
+
+assert(a == 0);
+*/
+
+int a, b;
+assume( a == b && a >= 0);
+
+parallel(2)
+{
+    while (a  < 2) {
+        a++;
+    }
+}
+{
+    while (b < 2) {
+        b++;
+    }
+}
+
+assert( a == b);

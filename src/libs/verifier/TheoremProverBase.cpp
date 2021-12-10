@@ -175,28 +175,29 @@ string TheoremProverBase::getFormula(ASTNode *node, Statement* stmt, SSANumberin
             left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
         }
         else if (insideAssume) {
-            if (node->getChild(0)->isId()) {
-                const string& varName = node->getChild(0)->getIdName();
-                if (!ssaNumberingTable.isVarInitialized(varName)) {
-                    right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
-                    left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
+            //either lhs or rhs can be initialized
+            if (node->getChild(1)->isId()) { // right
+                const string& varName = node->getChild(1)->getIdName();
+                if (!ssaNumberingTable.isVarInitialized(varName) || ssaNumberingTable.getInitializationStatement(varName) != stmt) {
+                    right = getFormula(node->getChild(1), stmt, ssaNumberingTable, true, insideAssume);
                 }
-                else {
-                    Statement* initializationStatement = ssaNumberingTable.getInitializationStatement(varName);
-                    if (initializationStatement != stmt) { // different statements, introduce new ssa numbers
-                        right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
-                        left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
-                    }
+            }
+
+            if (node->getChild(0)->isId()) { // left
+                const string& varName = node->getChild(0)->getIdName();
+                if (!ssaNumberingTable.isVarInitialized(varName) || ssaNumberingTable.getInitializationStatement(varName) != stmt) {
+                    left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
                 }
             }
         }
 
-        if (left.empty() && right.empty()) {
+        if (left.empty()) {
             left = getFormula(node->getChild(0), stmt, ssaNumberingTable, false, insideAssume);
-            right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
         }
 
-
+        if (right.empty()) {
+            right = getFormula(node->getChild(1), stmt, ssaNumberingTable, false, insideAssume);
+        }
 
         switch (node->getNodeType()) {
             case NodeType::Addition:
