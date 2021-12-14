@@ -1,26 +1,23 @@
 #include <iostream>
 #include <string>
-#include "antlr4-runtime.h"
-#include "libs/frontend/WeaverLexer.h"
-#include "libs/frontend/WeaverParser.h"
-#include "libs/ast/ASTBuilder.h"
-#include "libs/cfg/CFGBuilder.h"
 #include "libs/program/Program.h"
 #include "libs/verifier/SequentialProgramVerifier.h"
 #include "libs/automata/LoopingTreeAutomata.h"
 #include "libs/verifier/ParallelProgramVerifier.h"
-
+#include "log.h"
 
 using namespace weaver;
 using namespace std;
-using namespace antlr4;
-using namespace antlrcpp;
 
+logg::Logger logger;
 
 int main(int argc , const char ** argv) {
+
+    logger = logg::Logger(logg::verbose); 
 	
 	if (argc < 2) {
-		cerr << "weaver: fatal error: no input files. Try with './weaver <file>.wvr'" << endl;
+        logger.error("No input files. \
+            Try with './weaver <file>.wvr'"); 
 		return 1;
 	}
 

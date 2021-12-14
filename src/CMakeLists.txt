@@ -25,7 +25,6 @@ set(ANTLR_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/bin/antlr4/antlr-4.9.2-complete
 find_package(ANTLR REQUIRED)
 find_package(Threads)
 
-
 # Call macro to add lexer and grammar to your build dependencies.
 antlr_target(WeaverGrammarLexer ${CMAKE_CURRENT_SOURCE_DIR}/grammar/WeaverLexer.g4
             LEXER VISIOR OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/frontend
@@ -46,35 +45,55 @@ include_directories(${PROJECT_SOURCE_DIR}/libs/automata)
 include_directories(${PROJECT_SOURCE_DIR}/libs/verifier)
 include_directories(${PROJECT_SOURCE_DIR}/libs/util)
 
+add_library(weaver_antlr 
+       ${ANTLR_WeaverGrammarLexer_CXX_OUTPUTS}
+       ${ANTLR_WeaverGrammarParser_CXX_OUTPUTS})
+
+add_library(weaver_program 
+       ${PROJECT_SOURCE_DIR}/libs/program/Program.cpp
+       ${PROJECT_SOURCE_DIR}/libs/program/Statement.cpp
+       ${PROJECT_SOURCE_DIR}/libs/program/Thread.cpp)
+
+add_library(ast 
+       ${PROJECT_SOURCE_DIR}/libs/ast/AST.cpp
+       ${PROJECT_SOURCE_DIR}/libs/ast/ASTNode.cpp
+       ${PROJECT_SOURCE_DIR}/libs/ast/VariableTable.cpp
+       ${PROJECT_SOURCE_DIR}/libs/ast/ASTBuilder.cpp)
+
+add_library(cfg ${PROJECT_SOURCE_DIR}/libs/cfg/CFGBuilder.cpp)
+
+add_library(automata  
+       ${PROJECT_SOURCE_DIR}/libs/automata/FiniteAutomataBase.cpp
+       ${PROJECT_SOURCE_DIR}/libs/automata/NFA.cpp
+       ${PROJECT_SOURCE_DIR}/libs/automata/DFA.cpp
+       ${PROJECT_SOURCE_DIR}/libs/automata/LoopingTreeAutomata.cpp)
+
+add_library(verifier 
+       ${PROJECT_SOURCE_DIR}/libs/verifier/InterpolantAutomataBuilder.cpp
+       ${PROJECT_SOURCE_DIR}/libs/verifier/TheoremProverBase.cpp
+       ${PROJECT_SOURCE_DIR}/libs/verifier/SMTInterpol.cpp
+       ${PROJECT_SOURCE_DIR}/libs/verifier/SequentialProgramVerifier.cpp
+       ${PROJECT_SOURCE_DIR}/libs/verifier/ParallelProgramVerifier.cpp)
+
+add_library(utils ${PROJECT_SOURCE_DIR}/libs/util/util.cpp
+${PROJECT_SOURCE_DIR}/libs/util/log.cpp)
+
+target_link_libraries(utils weaver_program)
+ 
 # add generated grammar to weaver binary target
-add_executable(${PROJECT_NAME} 
-               weaver.cpp
-               ${ANTLR_WeaverGrammarLexer_CXX_OUTPUTS}
-               ${ANTLR_WeaverGrammarParser_CXX_OUTPUTS}
-        ${PROJECT_SOURCE_DIR}/libs/program/Program.cpp
-        ${PROJECT_SOURCE_DIR}/libs/program/Statement.cpp
-        ${PROJECT_SOURCE_DIR}/libs/program/Thread.cpp
-        ${PROJECT_SOURCE_DIR}/libs/cfg/CFGBuilder.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/AST.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/ASTNode.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/VariableTable.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/FiniteAutomataBase.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/NFA.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/DFA.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/LoopingTreeAutomata.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/ASTBuilder.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/InterpolantAutomataBuilder.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/TheoremProverBase.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/SMTInterpol.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/SequentialProgramVerifier.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/ParallelProgramVerifier.cpp
-        ${PROJECT_SOURCE_DIR}/libs/util/util.cpp
-       )
+add_executable(${PROJECT_NAME} weaver.cpp)
 # the global path for theorem prover binaries
 add_definitions(-DSMT_INTERPOL_BIN_PATH=\"${PROJECT_SOURCE_DIR}/bin/smt-interpol/smt-interpol.jar\")
 
-target_link_libraries(weaver antlr4_static)
-target_link_libraries(weaver ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(weaver 
+       antlr4_static 
+       weaver_antlr 
+       utils 
+       automata 
+       weaver_program
+       ast cfg verifier
+       )
+# target_link_libraries(weaver ${CMAKE_THREAD_LIBS_INIT})
 
 Include(FetchContent)
 
@@ -89,29 +108,16 @@ FetchContent_MakeAvailable(Catch2)
 include_directories(${PROJECT_SOURCE_DIR}/libs/frontend)
 
 add_executable(tests 
-       test/test.cpp 
-       ${ANTLR_WeaverGrammarLexer_CXX_OUTPUTS}
-       ${ANTLR_WeaverGrammarParser_CXX_OUTPUTS}
-        ${PROJECT_SOURCE_DIR}/libs/program/Program.cpp
-        ${PROJECT_SOURCE_DIR}/libs/program/Statement.cpp
-        ${PROJECT_SOURCE_DIR}/libs/program/Thread.cpp
-        ${PROJECT_SOURCE_DIR}/libs/cfg/CFGBuilder.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/AST.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/ASTNode.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/VariableTable.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/FiniteAutomataBase.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/NFA.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/DFA.cpp
-        ${PROJECT_SOURCE_DIR}/libs/automata/LoopingTreeAutomata.cpp
-        ${PROJECT_SOURCE_DIR}/libs/ast/ASTBuilder.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/InterpolantAutomataBuilder.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/TheoremProverBase.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/SMTInterpol.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/SequentialProgramVerifier.cpp
-        ${PROJECT_SOURCE_DIR}/libs/verifier/ParallelProgramVerifier.cpp
-        ${PROJECT_SOURCE_DIR}/libs/util/util.cpp
+       test/test.cpp)
+target_link_libraries(tests PRIVATE 
+       Catch2::Catch2WithMain
+       antlr4_static 
+       weaver_antlr 
+       utils 
+       automata 
+       weaver_program
+       ast cfg verifier
        )
-target_link_libraries(tests PRIVATE antlr4_static Catch2::Catch2WithMain)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(CTest)

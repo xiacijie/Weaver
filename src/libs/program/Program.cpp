@@ -10,6 +10,7 @@
 #include "ASTBuilder.h"
 #include "CFGBuilder.h"
 #include "util.h"
+#include "log.h"
 
 
 using namespace weaver;
@@ -23,10 +24,13 @@ using namespace antlrcpp;
 //    return it->second;
 //}
 
+extern logg::Logger logger;
+
 void Program::init(string fileName) {
 
     if (!(fileName.substr(fileName.find_last_of(".") + 1) == "wvr")) {
-        throw invalid_argument( "Currently only '.wvr' files are supported.");
+        logger.error("Currently only '.wvr' files are supported."); 
+        exit(1); 
     } 
 
     InputType t = wvr; 
