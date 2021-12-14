@@ -1,9 +1,10 @@
 #include "AST.h"
 #include <sstream>
+
 #include "../program/Program.h"
 
 using namespace std;
-using namespace weaver;
+using namespace weaver; 
 
 string AST::toString() {
     stringstream ss;

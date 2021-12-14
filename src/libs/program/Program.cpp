@@ -1,8 +1,21 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <stdexcept>
+#include "antlr4-runtime.h"
 #include "Program.h"
 #include "../verifier/SMTInterpol.h"
+#include "WeaverLexer.h"
+#include "WeaverParser.h"
+#include "ASTBuilder.h"
+#include "CFGBuilder.h"
+#include "util.h"
+
 
 using namespace weaver;
 using namespace std;
+using namespace antlr4;
+using namespace antlrcpp;
 
 //vector<Thread>& Program::getParallelThreads(uint32_t state) {
 //    const auto& it = _threads.find(state);
@@ -10,6 +23,67 @@ using namespace std;
 //    return it->second;
 //}
 
+void Program::init(string fileName) {
+
+    if (!(fileName.substr(fileName.find_last_of(".") + 1) == "wvr")) {
+        throw invalid_argument( "Currently only '.wvr' files are supported.");
+    } 
+
+    InputType t = wvr; 
+
+    ifstream stream;
+    stream.open(fileName);
+
+    if (!stream.good()) {
+        throw invalid_argument( "Cannot open file {}" + fileName );
+    }
+
+    ANTLRInputStream input(stream);
+	this->init(t, input); 
+
+}
+
+void Program::init(InputType t, string contents) {
+
+    ANTLRInputStream input(contents);
+	this->init(t, input); 
+}
+
+void Program::init(InputType t, ANTLRInputStream input) {
+
+    if (t != wvr) {
+        throw invalid_argument( "Currently only '.wvr' files are supported.");
+    }
+
+    WeaverLexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	tokens.fill();
+
+	WeaverParser parser(&tokens);
+
+	WeaverParser::ProgramContext* tree = parser.program();
+
+    if (parser.getNumberOfSyntaxErrors() > 0) {
+        cerr << "Weaver: Syntax Error!\n" << endl;
+        abort();
+    }
+    ASTBuilder builder(this, tree);
+    builder.build();
+
+    CFGBuilder cfgBuilder(this);
+    cout << "Building CFG..." << endl;
+    cfgBuilder.build();
+    cout << this->getCFG().toString() << endl;
+
+    cout << "Alphabet size: " << this->getAlphabet().size() << endl;
+
+    this->buildDependenceRelation();
+
+    cout << this->independentStatementsToString() << endl;
+
+    cout << this->dependentStatementsToString() << endl;
+}
 
 const unordered_set<Statement*>& Program::getStatementsByThread(uint16_t threadID) const {
     const auto& it = _statementsByThread.find(threadID);
@@ -31,7 +105,7 @@ string Program::dependentStatementsToString() {
             dependentStatements.push_back(s->toString());
         }
 
-        ss << join(dependentStatements, " | ") << "}";
+        ss << util::join(dependentStatements, " | ") << "}";
 
         ss << endl;
     }
@@ -68,7 +142,7 @@ string Program::independentStatementsToString() {
                 independentStatements.push_back(s->toString());
             }
         }
-        ss << join(independentStatements, " | ") << "}";
+        ss << util::join(independentStatements, " | ") << "}";
         ss << endl;
     }
 

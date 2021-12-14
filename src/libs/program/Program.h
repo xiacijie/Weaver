@@ -1,15 +1,21 @@
 #pragma once
+#include <unordered_map>
+#include <vector>
+#include <unordered_set>
 #include "../ast/VariableTable.h"
 #include "../ast/AST.h"
 #include "../automata/NFA.h"
 #include "Thread.h"
-#include <unordered_map>
-#include <vector>
-#include <unordered_set>
+#include "antlr4-runtime.h"
+
+
+
 
 using namespace std;
 
-namespace weaver{
+namespace weaver {
+
+    enum InputType { wvr, c };
 
     /**
      * The abstract program
@@ -21,7 +27,6 @@ namespace weaver{
 
     public:
         Program() : _totalThreads(0) {}
-
         ~Program();
 
         VariableTable& getVariableTable()  { return _vTable; }
@@ -29,6 +34,9 @@ namespace weaver{
         NFA& getCFG() { return _cfg; }
         Alphabet& getAlphabet() { return _alphabet; }
 
+        void init(string); // filename 
+        void init(InputType, string); // code 
+        void init(InputType, antlr4::ANTLRInputStream); // code 
         void addASTNodeToPool(ASTNode* node) { _nodePool.push_back(node); }
         void addStatementToPool(Statement* stmt) { _statementPool.push_back(stmt); _statementsByThread[stmt->getThreadID()].insert(stmt); }
 

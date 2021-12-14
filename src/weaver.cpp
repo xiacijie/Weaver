@@ -19,52 +19,13 @@ using namespace antlrcpp;
 
 int main(int argc , const char ** argv) {
 	
-	ifstream stream;
-
-	// Need to provide the code file
 	if (argc < 2) {
 		cerr << "weaver: fatal error: no input files. Try with './weaver <file>.wvr'" << endl;
 		return 1;
 	}
 
-	string inputFile = argv[1];
-    stream.open(inputFile);
-
-	ANTLRInputStream input(stream);
-    WeaverLexer lexer(&input);
-	CommonTokenStream tokens(&lexer);
-
-	tokens.fill();
-
-	WeaverParser parser(&tokens);
-
-
-	WeaverParser::ProgramContext* tree = parser.program();
-
-    if (parser.getNumberOfSyntaxErrors() > 0) {
-        cerr << "Weaver: Syntax Error!\n" << endl;
-        abort();
-    }
-
-    //=======================
-    Program program;
-    ASTBuilder builder(&program, tree);
-    builder.build();
-
-    cout << program.getAST().toString();
-
-    CFGBuilder cfgBuilder(&program);
-    cout << "Building CFG..." << endl;
-    cfgBuilder.build();
-    cout << program.getCFG().toString() << endl;
-
-    cout << "Alphabet size: " << program.getAlphabet().size() << endl;
-
-    program.buildDependenceRelation();
-
-    cout << program.independentStatementsToString() << endl;
-
-    cout << program.dependentStatementsToString() << endl;
+    Program program = Program();
+    program.init(argv[1]);
 
     ParallelProgramVerifier c(&program);
     c.verify();

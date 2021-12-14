@@ -206,7 +206,7 @@ string ASTNode::getReadableText() const {
             statementsText.push_back(getChild(i)->getReadableText());
         }
 
-        return join(statementsText, "; ");
+        return util::join(statementsText, "; ");
     }
 
     if (isBinaryOperation()) {

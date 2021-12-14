@@ -23,6 +23,8 @@ namespace weaver {
 
         }
 
+
+
         void setRoot(ASTNode* root) { _root = root; };
         string toString();
         string toStringSubtree(ASTNode* node, uint16_t indent);
@@ -32,4 +34,6 @@ namespace weaver {
 
     };
 
+    ASTNode* fromFile(string); 
+    ASTNode* fromString(string); 
 }
