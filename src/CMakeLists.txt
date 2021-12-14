@@ -75,3 +75,46 @@ add_definitions(-DSMT_INTERPOL_BIN_PATH=\"${PROJECT_SOURCE_DIR}/bin/smt-interpol
 
 target_link_libraries(weaver antlr4_static)
 target_link_libraries(weaver ${CMAKE_THREAD_LIBS_INIT})
+
+Include(FetchContent)
+
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.0.0-preview3
+)
+
+FetchContent_MakeAvailable(Catch2)
+
+include_directories(${PROJECT_SOURCE_DIR}/libs/frontend)
+
+add_executable(tests 
+       test/test.cpp 
+       ${ANTLR_WeaverGrammarLexer_CXX_OUTPUTS}
+       ${ANTLR_WeaverGrammarParser_CXX_OUTPUTS}
+        ${PROJECT_SOURCE_DIR}/libs/program/Program.cpp
+        ${PROJECT_SOURCE_DIR}/libs/program/Statement.cpp
+        ${PROJECT_SOURCE_DIR}/libs/program/Thread.cpp
+        ${PROJECT_SOURCE_DIR}/libs/cfg/CFGBuilder.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/AST.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/ASTNode.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/VariableTable.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/FiniteAutomataBase.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/NFA.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/DFA.cpp
+        ${PROJECT_SOURCE_DIR}/libs/automata/LoopingTreeAutomata.cpp
+        ${PROJECT_SOURCE_DIR}/libs/ast/ASTBuilder.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/InterpolantAutomataBuilder.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/TheoremProverBase.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/SMTInterpol.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/SequentialProgramVerifier.cpp
+        ${PROJECT_SOURCE_DIR}/libs/verifier/ParallelProgramVerifier.cpp
+        ${PROJECT_SOURCE_DIR}/libs/util/util.cpp
+       )
+target_link_libraries(tests PRIVATE antlr4_static Catch2::Catch2WithMain)
+
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(CTest)
+include(Catch)
+catch_discover_tests(tests [WORKING_DIRECTORY .])
+
