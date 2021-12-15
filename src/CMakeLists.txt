@@ -44,6 +44,7 @@ include_directories(${PROJECT_SOURCE_DIR}/libs/ast)
 include_directories(${PROJECT_SOURCE_DIR}/libs/automata)
 include_directories(${PROJECT_SOURCE_DIR}/libs/verifier)
 include_directories(${PROJECT_SOURCE_DIR}/libs/util)
+include_directories(${PROJECT_SOURCE_DIR}/libs/config)
 
 add_library(weaver_antlr 
        ${ANTLR_WeaverGrammarLexer_CXX_OUTPUTS}
@@ -80,6 +81,10 @@ add_library(verifier
 add_library(utils ${PROJECT_SOURCE_DIR}/libs/util/util.cpp
 ${PROJECT_SOURCE_DIR}/libs/util/log.cpp)
 
+add_library(config ${PROJECT_SOURCE_DIR}/libs/config/config.cpp)
+
+target_link_libraries(config utils)
+
 # add generated grammar to weaver binary target
 add_executable(${PROJECT_NAME} weaver.cpp)
 # the global path for theorem prover binaries
@@ -92,6 +97,7 @@ target_link_libraries(weaver
        automata 
        weaver_program
        ast cfg verifier
+       config
        )
 # target_link_libraries(weaver ${CMAKE_THREAD_LIBS_INIT})
 

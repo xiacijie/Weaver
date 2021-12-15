@@ -5,21 +5,21 @@
 #include "libs/automata/LoopingTreeAutomata.h"
 #include "libs/verifier/ParallelProgramVerifier.h"
 #include "log.h"
+#include "config.h"
 
 using namespace weaver;
 using namespace std;
 
 extern logg::Logger logger;
+extern conf::Config config; 
 
-int main(int argc , const char ** argv) {
+int main(int argc , char *argv[]) {
 
-    logger = logg::Logger(logg::verbose); 
-	
-	if (argc < 2) {
-        logger.error("No input files. \
-            Try with './weaver <file>.wvr'"); 
-		return 1;
-	}
+    config = conf::Config(argc, argv); 
+    logger = logg::Logger(config.logLevel); 
+
+    logger.info("Running Weaver with the following settings:\n" + 
+        config.toString());
 
     // You can remove these. This is just to demonstrate
     // the usage of the logger. 
@@ -30,11 +30,15 @@ int main(int argc , const char ** argv) {
     logger.verbose("verbose"); // I want all information
 
     Program program = Program();
-    program.init(argv[1]);
+    program.init(config.fileName);
 
-    ParallelProgramVerifier c(&program);
-    c.verify();
-//    SequentialProgramVerifier v(&program);
-//    v.verify();
+    if (config.verifier == conf::parallel) {
+        ParallelProgramVerifier c(&program);
+        c.verify();
+    } else if (config.verifier == conf::sequential) {
+        SequentialProgramVerifier v(&program);
+        v.verify();
+    }
+
 	return 0;
 }
