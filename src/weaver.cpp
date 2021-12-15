@@ -18,6 +18,11 @@ int main(int argc , char *argv[]) {
     config = conf::Config(argc, argv); 
     logger = logg::Logger(config.logLevel); 
 
+    if (config.fileName == "") {
+        logger.error(conf::helpMessage); 
+        exit(1);
+    }
+
     logger.info("Running Weaver with the following settings:\n" + 
         config.toString());
 
