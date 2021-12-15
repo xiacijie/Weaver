@@ -28,10 +28,10 @@ find_package(Threads)
 # Call macro to add lexer and grammar to your build dependencies.
 antlr_target(WeaverGrammarLexer ${CMAKE_CURRENT_SOURCE_DIR}/grammar/WeaverLexer.g4
             LEXER VISIOR OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/frontend
-            PACKAGE weaver)
+            PACKAGE weaver weaver_program)
 antlr_target(WeaverGrammarParser ${CMAKE_CURRENT_SOURCE_DIR}/grammar/WeaverParser.g4
             PARSER VISITOR OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/frontend
-            PACKAGE weaver
+            PACKAGE weaver weaver_program
             DEPENDS_ANTLR WeaverGrammarLexer
             COMPILE_FLAGS -lib ${ANTLR_WeaverGrammarLexer_OUTPUT_DIR})
 
@@ -53,6 +53,8 @@ add_library(weaver_program
        ${PROJECT_SOURCE_DIR}/libs/program/Program.cpp
        ${PROJECT_SOURCE_DIR}/libs/program/Statement.cpp
        ${PROJECT_SOURCE_DIR}/libs/program/Thread.cpp)
+
+target_link_libraries(weaver_program antlr4_static weaver_antlr utils)
 
 add_library(ast 
        ${PROJECT_SOURCE_DIR}/libs/ast/AST.cpp
