@@ -78,8 +78,6 @@ add_library(verifier
 add_library(utils ${PROJECT_SOURCE_DIR}/libs/util/util.cpp
 ${PROJECT_SOURCE_DIR}/libs/util/log.cpp)
 
-target_link_libraries(utils weaver_program)
- 
 # add generated grammar to weaver binary target
 add_executable(${PROJECT_NAME} weaver.cpp)
 # the global path for theorem prover binaries

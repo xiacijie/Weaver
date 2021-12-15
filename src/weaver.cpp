@@ -9,7 +9,7 @@
 using namespace weaver;
 using namespace std;
 
-logg::Logger logger;
+extern logg::Logger logger;
 
 int main(int argc , const char ** argv) {
 
@@ -20,6 +20,14 @@ int main(int argc , const char ** argv) {
             Try with './weaver <file>.wvr'"); 
 		return 1;
 	}
+
+    // You can remove these. This is just to demonstrate
+    // the usage of the logger. 
+    logger.error("An error."); // Can't continue
+    logger.warn("An warning."); // This might be a problem
+    logger.info("Info."); // Where are we at? 
+    logger.debug("Debugging"); // Look under the hood
+    logger.verbose("verbose"); // I want all information
 
     Program program = Program();
     program.init(argv[1]);

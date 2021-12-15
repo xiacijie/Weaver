@@ -1,9 +1,12 @@
-#include "VariableTable.h"
 #include <iostream>
 #include <algorithm>
+#include "VariableTable.h"
+#include "log.h"
 
 using namespace std;
 using namespace weaver;
+
+extern logg::Logger logger;
 
 void VariableTable::initializeVar(const string &varName) {
     _varInitializationTable[varName] = true;
@@ -37,11 +40,12 @@ bool VariableTable::isVarDeclared(const string &varName) {
 }
 
 void VariableTable::print() {
-    cout << "VARIABLE TABLE:" << endl;
+    string s = "VARIABLE TABLE:\n"; 
 
-    cout << "|============|" << endl;
     for (auto& it: _varTable) {
-        cout << it.first << " : " << DataTypeLabels[it.second] << endl;
+        s += it.first + " : " + DataTypeLabels[it.second] + "\n";
     }
-    cout << "|============|" << endl << endl;
+
+    logger.verbose(s);
+
 }
