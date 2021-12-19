@@ -22,12 +22,19 @@ bool ParallelProgramVerifier::verify() {
     int round = 1;
     while (true) {
         cout << "=========== Round: " << round++ << " ==============" << endl;
-//        cout << "Proof: " << endl;
-//        cout << proof->toString(_program->getAlphabet()) << endl;
 
         auto errorTraceSet = getErrorTraces(cfg, proof);
-        if (errorTraceSet.size() == 1) {
+
+        if (!errorTraceSet.empty()) {
             const Trace& errorTrace = *errorTraceSet.begin();
+
+            cout << "Get an error trace: " << endl;
+            for (const auto& t: errorTrace) {
+                cout << t->toString() << " || ";
+            }
+
+            cout << endl;
+
             // This trace must be non-empty
             Interpolants interpols = prover->generateInterpols(errorTrace);
 
@@ -69,139 +76,216 @@ bool ParallelProgramVerifier::verify() {
 
 
 set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
-    set<Trace> result;
+
+    map<IntersectionState, map<Statement*, IntersectionState>> inactivityProof;
+
+    set<IntersectionState> inactiveStates;
+    bool inactiveStatesChanged = true;
+
+    // first we compute the initial set of inactive states
+    for (const auto& s1: cfg->getAcceptStates()) {
+        for (const auto& s2: proof->getStates()) {
+            if (!proof->isAcceptState(s2)) {
+                LTAState ltaState(s1, false, {});
+                IntersectionState intersectionState(ltaState, s2);
+                inactiveStates.insert(intersectionState);
+            }
+        }
+    }
 
     // set the reduction ordering R
     // The ordering uses the partition optimization
     // Note that the main thread is dependent with any other threads
     vector<const unordered_set<Statement*>*> R;
-
     R.reserve(_program->getTotalNumThreads());
     for (int i = 1; i < _program->getTotalNumThreads(); i ++) {
         R.push_back(&_program->getStatementsByThread(i));
     }
 
-    sort(R.begin(), R.end());
+    //the power set of the alphabet
+    set<set<Statement*>> alphabetPowerSet;
+    alphabetPowerSetGenerationHelper(_program->getAlphabet().begin(), _program->getAlphabet(), {}, alphabetPowerSet);
 
-    // construct the LTA and checking the emptiness on the fly
-    // we need to find if an inactive state is reachable from a start state
-    // Therefore, searching in BFS
+    // Then we compute backward, enlarging the inactive states until we find we initial state in it
+    // or the set does not grow
+    while (inactiveStatesChanged) {
+        inactiveStatesChanged = false;
+        for (const auto& s1 : cfg->getStates()) {
 
-    // the start state of LTA
-    tuple<uint32_t, bool, set<Statement*>> LTAStartState(cfg->getStartState(), false, {});
-
-    // (LTA States x DFA_proof States)
-    set<pair<tuple<uint32_t, bool, set<Statement*>>, uint32_t>> intersectionStates;
-
-    queue<pair<pair<tuple<uint32_t, bool, set<Statement*>>, uint32_t>, Trace>> workList;
-
-    Trace empty;
-    workList.push(make_pair(make_pair(LTAStartState, proof->getStartState()), empty));
-
-    while (!workList.empty()) {
-        auto currentIntersectionState = workList.front().first;
-        Trace currentTrace = workList.front().second;
-
-        workList.pop();
-
-//        do {
-
-            auto currentLTAState = currentIntersectionState.first;
-            auto currentProofDFAState = currentIntersectionState.second;
-
-            const auto& sleepSet = get<set<Statement*>>(currentLTAState);
-
-            auto q = get<uint32_t>(currentLTAState);
-            auto i = get<bool>(currentLTAState);
-
-//            cout << "q: " << q << " i: " << i << endl;
-
-            intersectionStates.insert(currentIntersectionState);
-
-            // verify the next available transitions
-            bool B_LTA = cfg->isAcceptState(get<uint32_t>(currentLTAState)) && !i;
-
-            if (!proof->isAcceptState(currentProofDFAState)) {
-                if (B_LTA == true) { // we found an inactive state
-                    cerr << "Inactive State Found!" << endl;
-
-                    for (const auto& s: currentTrace) {
-                        cerr << s->toString() << endl;
-                    }
-
-                    result.insert(currentTrace);
-                    return result;
-                }
+            // This state in the CFG has no transition
+            if (!cfg->hasTransitionFrom(s1)) {
+                continue;
             }
 
-            if (cfg->hasTransitionFrom(q)) {
-                for (const auto & t: cfg->getTransitions(q)) {
-                    Statement* statement = t.first;
-                    const unordered_set<uint32_t>& targetStates = t.second;
+            for (const auto& sleepSet: alphabetPowerSet) {
+                for (const auto& s2: proof->getStates()) {
+                    LTAState currentLTAState(s1, false, sleepSet);
+                    IntersectionState currentIntersectionState(currentLTAState, s2);
 
-                    for (const auto& s: targetStates) {
-                        uint32_t next_q;
-                        bool next_i;
-                        set<Statement*> nextSleepSet;
+                    // already in the inactive states
+                    if (inactiveStates.find(currentIntersectionState) != inactiveStates.end()) {
+                        continue;
+                    }
 
-                        uint32_t nextProofDFAState;
+                    bool forAllOrderingsExistOneTransitionIntoInactiveState = true;
+                    sort(R.begin(), R.end());
+                    do {
 
-                        if (statement == nullptr) { // epsilon transition
-                            next_q = s;
-                            next_i = i;
-                            nextSleepSet.insert(sleepSet.begin(), sleepSet.end());
-                            nextProofDFAState = currentProofDFAState;
-                        }
-                        else {
-                            next_q = s;
-                            next_i = i || (sleepSet.find(statement) != sleepSet.end());
+                        bool existOneTransitionToInactiveState = false;
+                        for (const auto&t : cfg->getTransitions(s1)) {
+                            Statement* stmt = t.first;
 
-                            set<Statement*> R_a;
-                            for (const auto & set : R) {
-                                if (set->find(statement) != set->end()) {
-                                    break;
+                            if (sleepSet.find(stmt) != sleepSet.end()) {
+                                continue;
+                            }
+
+                            const auto& targetStates = t.second;
+                            for (const auto& targetState: targetStates) {
+                                set<Statement*> nextSleepSet;
+                                uint32_t nextProofState;
+
+                                if (stmt == nullptr) {
+                                    nextSleepSet.insert(sleepSet.begin(), sleepSet.end());
+                                    nextProofState = currentIntersectionState.second;
                                 }
                                 else {
-                                    R_a.insert(set->begin(), set->end());
+                                    nextProofState = proof->getTargetState(currentIntersectionState.second, stmt);
+
+                                    set<Statement*> R_a;
+                                    for (const auto & set : R) {
+                                        if (set->find(stmt) != set->end()) {
+                                            break;
+                                        }
+                                        else {
+                                            R_a.insert(set->begin(), set->end());
+                                        }
+                                    }
+
+                                    set<Statement*> S_union_R_a;
+                                    S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
+                                    S_union_R_a.insert(R_a.begin(), R_a.end());
+
+                                    set<Statement*> S_union_R_a_minus_D_a;
+                                    const auto& D_a = _program->getDependentStatements(stmt);
+
+                                    for (const auto& ss : S_union_R_a) {
+                                        if (D_a.find(ss) == D_a.end()) {
+                                            S_union_R_a_minus_D_a.insert(ss);
+                                        }
+                                    }
+
+                                    nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
+                                }
+
+                                LTAState nextLTAState(targetState, false, nextSleepSet);
+                                IntersectionState nextIntersectionState(nextLTAState, nextProofState);
+
+                                // if any state transits into an inactive state
+                                const auto& it = inactiveStates.find(nextIntersectionState);
+                                if (it != inactiveStates.end()) {
+                                    existOneTransitionToInactiveState = true;
+                                    inactivityProof[currentIntersectionState][stmt] = nextIntersectionState;
+                                    break;
                                 }
                             }
 
-                            set<Statement*> S_union_R_a;
-                            S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
-                            S_union_R_a.insert(R_a.begin(), R_a.end());
-
-                            set<Statement*> S_union_R_a_minus_D_a;
-                            const auto& D_a = _program->getDependentStatements(statement);
-
-                            for (const auto& ss : S_union_R_a) {
-                                if (D_a.find(ss) == D_a.end()) {
-                                    S_union_R_a_minus_D_a.insert(ss);
-                                }
+                            if (existOneTransitionToInactiveState) {
+                                break;
                             }
-
-                            nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
-                            nextProofDFAState = proof->getTargetState(currentProofDFAState, statement);
-
                         }
 
-                        tuple<uint32_t, bool, set<Statement*>> nextLTAState(next_q, next_i, nextSleepSet);
+                        if (!existOneTransitionToInactiveState) {
+                            forAllOrderingsExistOneTransitionIntoInactiveState = false;
+                            break;
+                        }
 
-                        auto nextIntersectionState = make_pair(nextLTAState, nextProofDFAState);
+                    } while (next_permutation(R.begin(), R.end()));
 
-                        if (intersectionStates.find(nextIntersectionState) == intersectionStates.end()) {
-                            Trace nextTrace(currentTrace.begin(), currentTrace.end());
+                    if (forAllOrderingsExistOneTransitionIntoInactiveState) {
 
-                            if (statement) {
-                                nextTrace.push_back(statement);
-                            }
+                        // initial state is inactive
+                        if (cfg->isStartState(s1) && sleepSet.empty() && proof->isStartState(s2)) {
+                            cout << "Initial State is inactive" << endl;
+                            LTAState initialLTAState(s1, false, {});
+                            IntersectionState initialIntersectionState(initialLTAState, s2);
 
-                            workList.push(make_pair(make_pair(nextLTAState, nextProofDFAState), nextTrace));
+                            set<Trace> counterExamples = getCounterExamples(inactivityProof, initialIntersectionState);
+
+                            return counterExamples;
+                        }
+
+                        inactiveStatesChanged = true;
+
+                        inactiveStates.insert(currentIntersectionState);
+                    }
+                    else {
+                        const auto& it = inactivityProof.find(currentIntersectionState);
+                        if (it != inactivityProof.end()) {
+                            inactivityProof.erase(it);
                         }
                     }
+
                 }
             }
-//        } while (next_permutation(R.begin(), R.end()));
+        }
+
     }
 
-    return result;
+    return {};
+}
+
+set<Trace> ParallelProgramVerifier::getCounterExamples(
+        map <IntersectionState, map<Statement *, IntersectionState>> &inactivityProof,
+        IntersectionState& initialState) {
+
+    set<Trace> counterExamples;
+    queue<pair<IntersectionState, Trace>> q;
+
+    q.push(make_pair(initialState, Trace({})));
+
+    while (!q.empty()) {
+        auto current = q.front();
+        q.pop();
+
+        const auto& currentState = current.first;
+        const auto& currentTrace = current.second;
+
+        const auto& it = inactivityProof.find(currentState);
+        if (it != inactivityProof.end()) {
+            Trace nextTrace(currentTrace.begin(), currentTrace.end());
+
+            for (const auto& t : it->second) {
+                Statement* stmt = t.first;
+                const IntersectionState& nextState = t.second;
+
+                if (stmt != nullptr)
+                    nextTrace.push_back(stmt);
+
+                q.push(make_pair(nextState, nextTrace));
+
+                if (stmt != nullptr)
+                    nextTrace.pop_back();
+            }
+        }
+        else { // leaf node
+            counterExamples.insert(currentTrace);
+        }
+    }
+
+    return counterExamples;
+}
+
+void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it, const Alphabet &alphabet,
+                                                           set<Statement *> tempSet, set<set<Statement*>> &powerSetSet) {
+    powerSetSet.insert(tempSet);
+
+    if (it == alphabet.end())
+        return;
+
+    for (auto localIt = it; localIt != alphabet.end(); localIt++) {
+        tempSet.insert(*localIt);
+        alphabetPowerSetGenerationHelper(++it, alphabet, tempSet, powerSetSet);
+        const auto& it1 = tempSet.find(*localIt);
+        tempSet.erase(it1);
+    }
 }

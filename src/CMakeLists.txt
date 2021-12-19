@@ -111,7 +111,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-include_directories(${PROJECT_SOURCE_DIR}/libs/frontend)
 
 add_executable(tests 
        test/test.cpp)
