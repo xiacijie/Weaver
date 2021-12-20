@@ -1,0 +1,21 @@
+// This verifies the equivalence of two vars after parallel sums.
+
+int x0, x1, temp;
+
+assume(x0 == x1);
+
+parallel(3)
+{
+    x0++;
+}
+{
+    x0++;
+}
+{
+    temp = x1;
+    x1 = temp + 1;
+    temp = x1;
+    x1 = temp + 1;
+}
+
+assert(x0 == x1);

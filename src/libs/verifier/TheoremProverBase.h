@@ -41,6 +41,8 @@ namespace weaver {
         bool inNumberTable(const string& varName) { return _numberTable.find(varName) != _numberTable.end(); }
 
         void declareNotInitializedVar(const string& varName);
+
+        bool isUninitializedVarDeclared(const string& varName) { return _varsNotInitializedSet.find(varName) != _varsNotInitializedSet.end(); };
         void declareInitializedVar(const string& varName, Statement* stmt);
 
         pair<string, uint16_t> popInitializedVar();
@@ -64,6 +66,8 @@ namespace weaver {
         // Holds variables that are initialized
         // <var, initialization statement>
         unordered_map<string, Statement*> _varsInitializedMap;
+
+        unordered_set<string> _varsNotInitializedSet;
     };
 
     /**

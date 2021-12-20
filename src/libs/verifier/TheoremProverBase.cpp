@@ -16,6 +16,7 @@ void SSANumberingTable::declareNotInitializedVar(const string &varName) {
     }
 
     enqueueVarNotInitialized(make_pair(varName, _numberTable[varName]));
+    _varsNotInitializedSet.insert(varName);
 }
 
 uint16_t SSANumberingTable::getVersionNumber(const string &varName) {
@@ -69,6 +70,7 @@ void SSANumberingTable::uninitializeVar(const string &varName) {
 
 void SSANumberingTable::uninitializeAllVars() {
     _varsInitializedMap.clear();
+    _varsNotInitializedSet.clear();
 }
 
 string TheoremProverBase::exec(const string &command) const {
@@ -139,7 +141,7 @@ string TheoremProverBase::getFormula(ASTNode *node, Statement* stmt, SSANumberin
     if (node->isId()) { // get the ssa version of this variable
         string varName = node->getIdName();
 
-        if (!ssaNumberingTable.isVarInitialized(varName)) { // first time encounter this var
+        if (!ssaNumberingTable.isVarInitialized(varName) && !ssaNumberingTable.isUninitializedVarDeclared(varName)) { // first time encounter this var and not declared
             ssaNumberingTable.declareNotInitializedVar(varName); //should be set to 0
         }
 

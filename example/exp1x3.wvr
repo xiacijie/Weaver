@@ -1,0 +1,16 @@
+int x1, x2, n;
+assume( x1 == x2 && x1 > 0);
+
+parallel(2)
+{
+    while (x1 < n) {
+        x1 = x1 + x1;
+    }
+}
+{
+    while (x2 < n) {
+        x2 = x2 + x2;
+    }
+}
+
+assert(x1 == x2);
