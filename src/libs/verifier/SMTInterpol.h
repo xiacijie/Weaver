@@ -14,6 +14,7 @@ namespace weaver {
         Interpolants generateInterpols(const Trace& trace) const override;
         bool entails(const string &formula1, const string &formula2) const override;
         bool checkIndependenceRelation(Statement* s1, Statement* s2) const override;
+        bool checkHoareTripe(const string& pre, Statement* statement, const string& post) const  override;
 
     private:
         string getCommand(const string &SMTFile) const override

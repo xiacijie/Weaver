@@ -30,19 +30,18 @@ namespace weaver {
     class SSANumberingTable {
     public:
         uint16_t getVersionNumber(const string& varName);
-        bool isVarInitialized(const string& varName) { return _varsInitializedMap.find(varName) != _varsInitializedMap.end(); }
+        bool isInitializedVarDeclared(const string& varName) { return _declaredInitializedVars.find(varName) != _declaredInitializedVars.end(); }
         Statement* getInitializationStatement(const string& varName);
 
-        void initializeVar(const string& varName, Statement* stmt) { _varsInitializedMap[varName] = stmt; }
+        void initializeVar(const string& varName, Statement* stmt) { _declaredInitializedVars[varName] = stmt; }
 
-        void uninitializeVar(const string& varName);
-        void uninitializeAllVars();
+        void clearAllDeclaredVars();
 
         bool inNumberTable(const string& varName) { return _numberTable.find(varName) != _numberTable.end(); }
 
         void declareNotInitializedVar(const string& varName);
 
-        bool isUninitializedVarDeclared(const string& varName) { return _varsNotInitializedSet.find(varName) != _varsNotInitializedSet.end(); };
+        bool isUninitializedVarDeclared(const string& varName) { return _declaredUninitializedVars.find(varName) != _declaredUninitializedVars.end(); };
         void declareInitializedVar(const string& varName, Statement* stmt);
 
         pair<string, uint16_t> popInitializedVar();
@@ -63,11 +62,11 @@ namespace weaver {
         // They are referenced without a prior initialization
         queue<pair<string, uint16_t>> _varsNotInitialized;
 
-        // Holds variables that are initialized
+        // Holds initialized vars have already declared
         // <var, initialization statement>
-        unordered_map<string, Statement*> _varsInitializedMap;
+        unordered_map<string, Statement*> _declaredInitializedVars;
 
-        unordered_set<string> _varsNotInitializedSet;
+        unordered_set<string> _declaredUninitializedVars;
     };
 
     /**
@@ -84,7 +83,7 @@ namespace weaver {
          * @param trace
          * @return A sequence of Interpoolants
          */
-        virtual Interpolants generateInterpols(const Trace& trace) const=0;
+        virtual Interpolants generateInterpols(const Trace& trace) const;
 
         /**
          *
@@ -92,7 +91,7 @@ namespace weaver {
          * @param formula2
          * @return If formula 1 entails formula 2
          */
-        virtual bool entails(const string &formula1, const string &formula2) const=0;
+        virtual bool entails(const string &formula1, const string &formula2) const;
 
         /**
          * Check whether two statements are independent of each other
@@ -102,7 +101,16 @@ namespace weaver {
          * @param s2
          * @return
          */
-        virtual bool checkIndependenceRelation(Statement* s1, Statement* s2) const=0;
+        virtual bool checkIndependenceRelation(Statement* s1, Statement* s2) const;
+
+        /**
+         * Check the validity of a hoare tripe
+         * @param pre precondition
+         * @param statement
+         * @param post postcondition
+         * @return
+         */
+        virtual bool checkHoareTripe(const string& pre, Statement* statement, const string& post) const;
 
     protected:
         virtual string getSSAVarName(const string& varName, uint16_t i) const

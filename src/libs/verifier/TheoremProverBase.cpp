@@ -7,6 +7,22 @@
 using namespace std;
 using namespace weaver;
 
+Interpolants TheoremProverBase::generateInterpols(const Trace &trace) const {
+    assert(false && "Not Implemented!");
+}
+
+bool TheoremProverBase::entails(const string &formula1, const string &formula2) const {
+    assert(false && "Not Implemented!");
+}
+
+bool TheoremProverBase::checkIndependenceRelation(Statement *s1, Statement *s2) const {
+    assert(false && "Not Implemented!");
+}
+
+bool TheoremProverBase::checkHoareTripe(const string &pre, Statement *statement, const string &post) const {
+    assert(false && "Not Implemented!");
+}
+
 void SSANumberingTable::declareNotInitializedVar(const string &varName) {
     if (!inNumberTable(varName)) {
         _numberTable[varName] = 0;
@@ -16,7 +32,7 @@ void SSANumberingTable::declareNotInitializedVar(const string &varName) {
     }
 
     enqueueVarNotInitialized(make_pair(varName, _numberTable[varName]));
-    _varsNotInitializedSet.insert(varName);
+    _declaredUninitializedVars.insert(varName);
 }
 
 uint16_t SSANumberingTable::getVersionNumber(const string &varName) {
@@ -39,8 +55,8 @@ void SSANumberingTable::declareInitializedVar(const string &varName,Statement* s
 }
 
 Statement* SSANumberingTable::getInitializationStatement(const string &varName) {
-    const auto& it = _varsInitializedMap.find(varName);
-    assert(it != _varsInitializedMap.end() && "Error");
+    const auto& it = _declaredInitializedVars.find(varName);
+    assert(it != _declaredInitializedVars.end() && "Error");
 
     return it->second;
 }
@@ -62,15 +78,9 @@ pair<string, uint16_t> SSANumberingTable::popNotInitializedVar() {
     return var;
 }
 
-void SSANumberingTable::uninitializeVar(const string &varName) {
-    assert(!isVarInitialized(varName) && "Error");
-
-    _varsInitializedMap.erase(_varsInitializedMap.find(varName));
-}
-
-void SSANumberingTable::uninitializeAllVars() {
-    _varsInitializedMap.clear();
-    _varsNotInitializedSet.clear();
+void SSANumberingTable::clearAllDeclaredVars() {
+    _declaredInitializedVars.clear();
+    _declaredUninitializedVars.clear();
 }
 
 string TheoremProverBase::exec(const string &command) const {
@@ -141,7 +151,7 @@ string TheoremProverBase::getFormula(ASTNode *node, Statement* stmt, SSANumberin
     if (node->isId()) { // get the ssa version of this variable
         string varName = node->getIdName();
 
-        if (!ssaNumberingTable.isVarInitialized(varName) && !ssaNumberingTable.isUninitializedVarDeclared(varName)) { // first time encounter this var and not declared
+        if (!ssaNumberingTable.isInitializedVarDeclared(varName) && !ssaNumberingTable.isUninitializedVarDeclared(varName)) { // first time encounter this var and not declared
             ssaNumberingTable.declareNotInitializedVar(varName); //should be set to 0
         }
 
@@ -180,14 +190,14 @@ string TheoremProverBase::getFormula(ASTNode *node, Statement* stmt, SSANumberin
             //either lhs or rhs can be initialized
             if (node->getChild(1)->isId()) { // right
                 const string& varName = node->getChild(1)->getIdName();
-                if (!ssaNumberingTable.isVarInitialized(varName) || ssaNumberingTable.getInitializationStatement(varName) != stmt) {
+                if (!ssaNumberingTable.isInitializedVarDeclared(varName) || ssaNumberingTable.getInitializationStatement(varName) != stmt) {
                     right = getFormula(node->getChild(1), stmt, ssaNumberingTable, true, insideAssume);
                 }
             }
 
             if (node->getChild(0)->isId()) { // left
                 const string& varName = node->getChild(0)->getIdName();
-                if (!ssaNumberingTable.isVarInitialized(varName) || ssaNumberingTable.getInitializationStatement(varName) != stmt) {
+                if (!ssaNumberingTable.isInitializedVarDeclared(varName) || ssaNumberingTable.getInitializationStatement(varName) != stmt) {
                     left = getFormula(node->getChild(0), stmt, ssaNumberingTable, true, insideAssume);
                 }
             }
