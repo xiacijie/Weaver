@@ -1,13 +1,13 @@
 // huh... This is just simple test case
 
-int a = 0;
+int a = 1;
 
 parallel(2)
 {
     a++;
 }
 {
-    a++;
+    a--;
 }
 
 

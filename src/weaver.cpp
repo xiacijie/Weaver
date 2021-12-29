@@ -2,7 +2,6 @@
 #include <string>
 #include "libs/program/Program.h"
 #include "libs/verifier/SequentialProgramVerifier.h"
-#include "libs/automata/LoopingTreeAutomata.h"
 #include "libs/verifier/ParallelProgramVerifier.h"
 #include "log.h"
 #include "config.h"

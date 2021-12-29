@@ -63,6 +63,7 @@ namespace weaver {
         void buildDependenceRelation();
 
         const unordered_map<Statement*, unordered_set<Statement*>>& getDependenceRelation() { return _dependenceRelation; }
+        const unordered_map<Statement*, unordered_set<Statement*>>& getIndependenceRelation() { return _independenceRelation; }
         const unordered_set<Statement*>& getDependentStatements(Statement* statement) { return _dependenceRelation[statement]; };
         bool isDependent(Statement* first, Statement* second);
 
@@ -81,6 +82,7 @@ namespace weaver {
         void deallocateASTNodePool() { for (const auto& n : _nodePool) delete n; }
         void deallocateStatementPool() { for (const auto& n : _statementPool) delete n; }
         void addDependentStatements(Statement* first, Statement* second);
+        void addIndependentStatements(Statement* first, Statement* second);
 
 //        // state to threads mappings
 //        unordered_map<uint32_t, vector<Thread>> _threads;
@@ -95,6 +97,7 @@ namespace weaver {
         uint16_t _totalThreads;
 
         unordered_map<Statement*, unordered_set<Statement*>> _dependenceRelation;
+        unordered_map<Statement*, unordered_set<Statement*>> _independenceRelation;
 
         // disjoint statements by their thread number
         unordered_map<uint16_t, unordered_set<Statement*>> _statementsByThread;

@@ -120,33 +120,18 @@ string Program::dependentStatementsToString() {
 string Program::independentStatementsToString() {
     stringstream ss;
     ss << "Independent Statements:" << endl;
-    unordered_map<Statement*, unordered_set<Statement*>> statementsProduct;
 
-    for (int i = 0; i < _statementPool.size(); i ++) {
-        for (int j = i + 1; j < _statementPool.size(); j ++) {
-            Statement* s1 = _statementPool[i];
-            Statement* s2 = _statementPool[j];
-
-            statementsProduct[s1].insert(s2);
-            statementsProduct[s2].insert(s1);
-
-            statementsProduct[s1].insert(s1);
-            statementsProduct[s2].insert(s2);
-        }
-    }
-
-    for (const auto& it : statementsProduct) {
+    for (const auto& it : _independenceRelation) {
         Statement* stmt = it.first;
         ss << stmt->toString() << " ---- " << "{";
 
         vector<string> independentStatements;
         for (const auto& s : it.second) {
-            if (_dependenceRelation.find(stmt) == _dependenceRelation.end() ||
-                _dependenceRelation[stmt].find(s) == _dependenceRelation[stmt].end()) {
-                independentStatements.push_back(s->toString());
-            }
+            independentStatements.push_back(s->toString());
         }
+
         ss << util::join(independentStatements, " | ") << "}";
+
         ss << endl;
     }
 
@@ -203,12 +188,16 @@ void Program::buildDependenceRelation() {
             Statement* s2 = _statementPool[j];
 
             bool isInDependent = verifier->checkIndependenceRelation(s1, s2);
-            if (!isInDependent) {
+            if (isInDependent) {
+                addIndependentStatements(s1, s2);
+            }
+            else {
                 addDependentStatements(s1, s2);
             }
 
         }
     }
+
 
     delete verifier;
 }
@@ -241,6 +230,11 @@ void Program::addDependentStatements(Statement *first, Statement *second) {
 
     _dependenceRelation[first].insert(second);
     _dependenceRelation[second].insert(first);
+}
+
+void Program::addIndependentStatements(Statement *first, Statement *second) {
+    _independenceRelation[first].insert(second);
+    _independenceRelation[second].insert(first);
 }
 
 bool Program::isDependent(Statement *first, Statement *second) {

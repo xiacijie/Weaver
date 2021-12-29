@@ -4,4 +4,4 @@ add_library(program
         ${CMAKE_CURRENT_LIST_DIR}/Thread.cpp
         )
 
-target_link_libraries(program antlr4_static frontend util)
+target_link_libraries(program antlr4_static frontend util automata)

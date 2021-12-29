@@ -1,81 +1,147 @@
 #include "ParallelProgramVerifier.h"
 #include "SMTInterpol.h"
 #include "InterpolantAutomataBuilder.h"
+#include "../automata/ProofAutomata.h"
+
+#define PROOF_GROW_METHOD 0
 
 using namespace weaver;
 using namespace std;
 
 bool ParallelProgramVerifier::verify() {
     bool correct = false;
-
     Program* program = _program;
     NFA* cfg = &program->getCFG();
 
-    // start with an empty proof
-    DFA* proof = new DFA();
-    proof->addState(0);
-    proof->setStartState(0);
-    proof->complete(1, program->getAlphabet());
-
     SMTInterpol* prover = new SMTInterpol(program);
 
-    int round = 1;
-    while (true) {
-        cout << "=========== Round: " << round++ << " ==============" << endl;
+    if (PROOF_GROW_METHOD == 0) {
 
-        auto errorTraceSet = getErrorTraces(cfg, proof);
+        // start with an empty proof
+        DFA* proof = new DFA();
+        proof->addState(0);
+        proof->setStartState(0);
+        proof->complete(1, program->getAlphabet());
 
-        if (!errorTraceSet.empty()) {
-            const Trace& errorTrace = *errorTraceSet.begin();
+        int round = 1;
+        while (true) {
+            cout << "=========== Round: " << round++ << " ==============" << endl;
+            cout << "Proof DFA Size: "<< proof->getNumStates() << endl;
+            auto errorTraceSet = proofCheck(cfg, proof);
 
-            cout << "Get an error trace: " << endl;
-            for (const auto& t: errorTrace) {
-                cout << t->toString() << " || ";
-            }
+            if (!errorTraceSet.empty()) {
+                const Trace& errorTrace = *errorTraceSet.begin();
 
-            cout << endl;
-
-            // This trace must be non-empty
-            Interpolants interpols = prover->generateInterpols(errorTrace);
-
-            if (interpols.empty()) {
-                cerr << "This Program is Incorrect!" << endl;
-                cerr << "A valid counterexample trace:" << endl << endl;
-                for (auto t : errorTrace) {
-                    cerr << t->toString() << endl;
+                cout << "Get an error trace: " << endl;
+                for (const auto& t: errorTrace) {
+                    cout << t->toString() << " || ";
                 }
 
+                cout << endl;
+
+                // This trace must be non-empty
+                Interpolants interpols = prover->generateInterpols(errorTrace);
+
+                if (interpols.empty()) {
+                    cerr << "This Program is Incorrect!" << endl;
+                    cerr << "A valid counterexample trace:" << endl << endl;
+                    for (auto t : errorTrace) {
+                        cerr << t->toString() << endl;
+                    }
+
+                    break;
+                }
+
+                cout << "Interpolants: " << endl;
+                for (const auto& i : interpols) {
+                    cout << i << endl;
+                }
+
+                NFA* interpolAutomata = InterpolantAutomataBuilder::build(errorTrace, interpols, prover, program);
+                DFA* DInterpolAutomata = interpolAutomata->convertToDFA(program->getAlphabet());
+                delete interpolAutomata;
+
+                DInterpolAutomata->minimize(program->getAlphabet());
+
+                DFA* lastProofAutomata = proof;
+
+                proof = proof->Union(DInterpolAutomata, program->getAlphabet());
+                proof->minimize(program->getAlphabet());
+                delete DInterpolAutomata;
+                delete lastProofAutomata;
+            }
+            else {
+                cout << "***********************************************" << endl;
+                cout << "**   End: The program is verified correct!   **" << endl;
+                cout << "***********************************************" << endl;
+
+                correct = true;
                 break;
             }
-
-            NFA* interpolAutomata = InterpolantAutomataBuilder::build(errorTrace, interpols, prover, program);
-            DFA* DInterpolAutomata = interpolAutomata->convertToDFA(program->getAlphabet());
-            delete interpolAutomata;
-
-            DInterpolAutomata->minimize(program->getAlphabet());
-
-            DFA* lastProofAutomata = proof;
-
-            proof = proof->Union(DInterpolAutomata, program->getAlphabet());
-            delete DInterpolAutomata;
-            delete lastProofAutomata;
         }
-        else {
-            cout << "***********************************************" << endl;
-            cout << "**   End: The program is verified correct!   **" << endl;
-            cout << "***********************************************" << endl;
 
-            correct = true;
-            break;
+        delete prover;
+        return correct;
+    }
+    else {
+
+        // start with an empty proof automata
+        auto* proof = new ProofAutomata(program);
+
+        int round = 1;
+        while (true) {
+            cout << "=========== Round: " << round++ << " ==============" << endl;
+            cout << "Proof Size : " << proof->getNumStates() << endl;
+
+            DFA* DProof = proof->convertToDFA(program->getAlphabet());
+            DProof->minimize(program->getAlphabet());
+
+            auto errorTraceSet = proofCheck(cfg, DProof);
+            delete DProof;
+
+            if (!errorTraceSet.empty()) {
+                const Trace& errorTrace = *errorTraceSet.begin();
+
+                cout << "Get an error trace: " << endl;
+                for (const auto& t: errorTrace) {
+                    cout << t->toString() << " || ";
+                }
+
+                cout << endl;
+
+                // This trace must be non-empty
+                Interpolants interpols = prover->generateInterpols(errorTrace);
+
+                if (interpols.empty()) {
+                    cerr << "This Program is Incorrect!" << endl;
+                    cerr << "A valid counterexample trace:" << endl << endl;
+                    for (auto t : errorTrace) {
+                        cerr << t->toString() << endl;
+                    }
+
+                    break;
+                }
+
+                proof->extend(interpols, program->getAlphabet());
+            }
+            else {
+                cout << "***********************************************" << endl;
+                cout << "**   End: The program is verified correct!   **" << endl;
+                cout << "***********************************************" << endl;
+
+                correct = true;
+                break;
+            }
         }
+
+        delete prover;
+        return correct;
     }
 
-    delete prover;
-    return correct;
 }
 
 
-set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
+set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
 
     map<IntersectionState, map<Statement*, IntersectionState>> inactivityProof;
 
@@ -102,13 +168,21 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
         R.push_back(&_program->getStatementsByThread(i));
     }
 
-    //the power set of the alphabet
-    set<set<Statement*>> alphabetPowerSet;
-    alphabetPowerSetGenerationHelper(_program->getAlphabet().begin(), _program->getAlphabet(), {}, alphabetPowerSet);
+    //all the sleep sets
+    set<set<Statement*>> sleepSetSets;
+    set<Statement*> possibleStatementsInSleepSet;
+    const auto& independenceRelation = _program->getIndependenceRelation();
+
+    for (const auto& it: independenceRelation) {
+        possibleStatementsInSleepSet.insert(it.second.begin(), it.second.end());
+    }
+
+    alphabetPowerSetGenerationHelper(possibleStatementsInSleepSet.begin(), possibleStatementsInSleepSet, {}, sleepSetSets);
 
     // Then we compute backward, enlarging the inactive states until we find we initial state in it
     // or the set does not grow
     while (inactiveStatesChanged) {
+        cout << inactiveStates.size() << endl;
         inactiveStatesChanged = false;
         for (const auto& s1 : cfg->getStates()) {
 
@@ -117,7 +191,8 @@ set<Trace> ParallelProgramVerifier::getErrorTraces(NFA* cfg, DFA* proof) {
                 continue;
             }
 
-            for (const auto& sleepSet: alphabetPowerSet) {
+
+            for (const auto& sleepSet: sleepSetSets) {
                 for (const auto& s2: proof->getStates()) {
                     LTAState currentLTAState(s1, false, sleepSet);
                     IntersectionState currentIntersectionState(currentLTAState, s2);
@@ -275,8 +350,70 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
     return counterExamples;
 }
 
+//set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proof) {
+//
+//}
+//
+//set<set<Statement*>> ParallelProgramVerifier::X(uint32_t q_cfg, uint32_t q_pi) {
+//
+//    return {};
+//}
+//
+//set<set<Statement*>> ParallelProgramVerifier::FMax(function<set<set<Statement *>>(uint32_t, uint32_t)> F,
+//                                                   uint32_t q_cfg, uint32_t q_pi, NFA* cfg, DFA* proof) {
+//
+//    if (cfg->isAcceptState(q_cfg) && !proof->isAcceptState(q_pi)) {
+//        set<set<Statement*>> result;
+//        result.insert(_program->getAlphabet().begin(), _program->getAlphabet().end());
+//        return result;
+//    }
+//
+//    set<set<Statement*>> X_n;
+//    X_n.insert(_program->getAlphabet().begin(), _program->getAlphabet().end());
+//
+//    vector<const unordered_set<Statement*>*> R;
+//    R.reserve(_program->getTotalNumThreads());
+//    for (int i = 1; i < _program->getTotalNumThreads(); i ++) {
+//        R.push_back(&_program->getStatementsByThread(i));
+//    }
+//
+//    sort(R.begin(), R.end());
+//    do {
+//        set<set<Statement*>> X_u;
+//
+//        if (cfg->hasTransitionFrom(q_cfg)) {
+//            for (const auto& t : cfg->getTransitions(q_cfg)) {
+//                Statement* stmt = t.first;
+//                const auto& targetStates = t.second;
+//
+//                for (const auto& targetState: targetStates) {
+//
+//                }
+//            }
+//        }
+//    }
+//    while (next_permutation(R.begin(), R.end()));
+//
+//}
 void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it, const Alphabet &alphabet,
                                                            set<Statement *> tempSet, set<set<Statement*>> &powerSetSet) {
+    powerSetSet.insert(tempSet);
+
+    if (it == alphabet.end())
+        return;
+
+    for (auto localIt = it; localIt != alphabet.end(); localIt++) {
+        tempSet.insert(*localIt);
+        alphabetPowerSetGenerationHelper(++it, alphabet, tempSet, powerSetSet);
+        const auto& it1 = tempSet.find(*localIt);
+        tempSet.erase(it1);
+    }
+}
+
+void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(set<Statement *>::const_iterator it,
+                                                               const set<Statement *> &alphabet,
+                                                               set<Statement *> tempSet,
+                                                               set<set<Statement *>> &powerSetSet) {
     powerSetSet.insert(tempSet);
 
     if (it == alphabet.end())

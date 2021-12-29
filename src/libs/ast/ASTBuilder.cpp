@@ -125,7 +125,7 @@ Any ASTBuilder::visitProgram(WeaverParser::ProgramContext *ctx) {
 //        stringstream ss;
 //        ss << "Error: Not all variables are initialized!" << endl;
 //        for (const auto& it : _varTable->getGlobalVariables()) {
-//            if (!_varTable->isVarInitialized(it.first)) {
+//            if (!_varTable->isInitializedVarDeclared(it.first)) {
 //                ss << "Variable '" << it.first << "' " << "not initialized!";
 //            }
 //        }

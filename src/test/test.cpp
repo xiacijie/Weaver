@@ -8,7 +8,6 @@
 #include "CFGBuilder.h"
 #include "Program.h"
 #include "SequentialProgramVerifier.h"
-#include "LoopingTreeAutomata.h"
 #include "ParallelProgramVerifier.h"
 
 using namespace weaver;
