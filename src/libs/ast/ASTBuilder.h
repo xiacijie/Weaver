@@ -42,6 +42,7 @@ namespace  weaver {
         Any visitIncreaseStatement(WeaverParser::IncreaseStatementContext* ctx) override;
         Any visitDecreaseStatement(WeaverParser::DecreaseStatementContext* ctx) override;
         Any visitStoreStatement(WeaverParser::StoreStatementContext *ctx) override;
+        Any visitSelectExpression(WeaverParser::SelectExpressionContext *ctx) override;
 
         void declareVariable(const string& varName, DataType type);
         void ensureVarIsNotDeclared(const string& varName);
@@ -49,6 +50,9 @@ namespace  weaver {
         void ensureVarIsDeclared(const string& varName);
         void ensureVarHasType(const string& varName, DataType type);
         void throwError(const string& errorMessage);
+        DataType toArrayType(DataType type);
+        DataType fromArrayType(DataType type);
+        bool isArrayType(DataType type);
 
         WeaverParser::ProgramContext *_parserContext;
         DataType getDataType(WeaverParser::TypeContext* ctx);

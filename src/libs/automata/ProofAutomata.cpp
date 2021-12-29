@@ -3,8 +3,9 @@
 
 using namespace weaver;
 
-ProofAutomata::ProofAutomata(Program *program) {
-    _prover = new SMTInterpol(program);
+ProofAutomata::ProofAutomata(Program *program, TheoremProverBase* prover) {
+    _prover = prover;
+
     addState(0);
     _assertionMap["false"] = 0;
     setAcceptState(0);

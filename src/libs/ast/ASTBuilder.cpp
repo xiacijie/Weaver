@@ -78,15 +78,7 @@ Any ASTBuilder::visitVarDeclarationStatement(WeaverParser::VarDeclarationStateme
         bool isArrayDecl = false;
         if (singleVarDecl->LEFT_SQUARE_BRACKET()) { // it is array declaration
             string varName = singleVarDecl->IDENTIFIER()->getText();
-            DataType arrayType;
-
-            switch (getDataType(ctx->type())) {
-                case DataType::Int:
-                    arrayType = DataType::IntArray;
-                    break;
-                default:
-                    assert(false && "Error");
-            }
+            DataType arrayType = toArrayType(getDataType(ctx->type()));
 
             declareVariable(varName, arrayType);
         }
@@ -365,6 +357,10 @@ Any ASTBuilder::visitExpression(WeaverParser::ExpressionContext *ctx) {
         return visitOperand(ctx->operand()).as<ASTNode*>();
     }
 
+    if (ctx->selectExpression()) {
+        return visitSelectExpression(ctx->selectExpression()).as<ASTNode*>();
+    }
+
     assert(false && "Error");
 }
 
@@ -536,9 +532,68 @@ Any ASTBuilder::visitDecreaseStatement(WeaverParser::DecreaseStatementContext *c
     return assignmentNode;
 }
 
+DataType ASTBuilder::toArrayType(DataType type) {
+    switch (type) {
+        case DataType::Int:
+            return DataType::IntArray;
+        default:
+            assert(false && "Error");
+    }
+}
+
+DataType ASTBuilder::fromArrayType(DataType type) {
+    switch (type) {
+        case DataType::IntArray:
+            return DataType::Int;
+        default:
+            assert(false && "Error");
+    }
+}
+
+bool ASTBuilder::isArrayType(DataType type) {
+    switch (type) {
+        case DataType::IntArray:
+            return true;
+        default:
+            return false;
+    }
+}
+
 Any ASTBuilder::visitStoreStatement(WeaverParser::StoreStatementContext *ctx) {
     string varName = ctx->IDENTIFIER()->getText();
-
     ensureVarIsDeclared(varName);
 
+    ASTNode* expressionNode = visitExpression(ctx->expression(1)).as<ASTNode*>();
+    DataType type = toArrayType(expressionNode->getDataType());
+    ensureVarHasType(varName, type);
+
+    ASTNode* arrayIdNode = ASTNode::create(varName, type, _program);
+    ASTNode* indexNode = visitExpression(ctx->expression(0)).as<ASTNode*>();
+    if (!indexNode->isInt()) {
+        throwError("Array index must have integer type!");
+    }
+
+    ASTNode* storeNode = ASTNode::create(NodeType::Store, DataType::NoType, _program, {arrayIdNode, indexNode, expressionNode});
+    return storeNode;
+}
+
+Any ASTBuilder::visitSelectExpression(WeaverParser::SelectExpressionContext *ctx) {
+    string varName = ctx->IDENTIFIER()->getText();
+    ensureVarIsDeclared(varName);
+    DataType type = _varTable->getVarType(varName);
+
+    if (!isArrayType(type)) {
+        throwError("Array dereference on a non Array variable!");
+    }
+
+    ASTNode* arrayNode = ASTNode::create(varName,type, _program);
+
+    ASTNode* indexNode = visitExpression(ctx->expression()).as<ASTNode*>();
+    if (!indexNode->isInt()) {
+        throwError("Array Index must have Int Type!");
+    }
+
+    DataType expressionType = fromArrayType(type);
+    ASTNode* selectNode = ASTNode::create(NodeType::Select, expressionType, _program, {arrayNode, indexNode});
+    return selectNode;
 }

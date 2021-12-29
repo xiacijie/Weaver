@@ -69,7 +69,7 @@ namespace weaver {
 
         size_t getNumASTNodes() { return _nodePool.size(); }
 
-//        string parallelStatesToString();
+//      string parallelStatesToString();
         string dependentStatementsToString();
         string independentStatementsToString();
 

@@ -14,5 +14,7 @@ namespace util {
     string join(const unordered_set<uint32_t>& s, const string& delimiter);
     string join(const vector<uint32_t>& v, const string& delimiter);
     string join(const vector<string>& v, const string& delimiter);
+    vector<string> tokenize(const string& str, char delimiter);
+
 
 }

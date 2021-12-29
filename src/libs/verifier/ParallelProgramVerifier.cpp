@@ -1,9 +1,10 @@
 #include "ParallelProgramVerifier.h"
 #include "SMTInterpol.h"
+#include "MathSAT.h"
 #include "InterpolantAutomataBuilder.h"
 #include "../automata/ProofAutomata.h"
 
-#define PROOF_GROW_METHOD 0
+#define PROOF_GROW_METHOD 1
 
 using namespace weaver;
 using namespace std;
@@ -13,7 +14,7 @@ bool ParallelProgramVerifier::verify() {
     Program* program = _program;
     NFA* cfg = &program->getCFG();
 
-    SMTInterpol* prover = new SMTInterpol(program);
+    TheoremProverBase* prover = new MathSAT(program);
 
     if (PROOF_GROW_METHOD == 0) {
 
@@ -86,7 +87,7 @@ bool ParallelProgramVerifier::verify() {
     else {
 
         // start with an empty proof automata
-        auto* proof = new ProofAutomata(program);
+        auto* proof = new ProofAutomata(program, prover);
 
         int round = 1;
         while (true) {

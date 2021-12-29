@@ -1,11 +1,14 @@
 #pragma once
 
+#include "../ast/VariableTable.h"
 #include <string>
 #include <queue>
 #include <unordered_set>
 #include "../ast/AST.h"
 #include <sstream>
 #include "../program/Statement.h"
+#include "../program/Program.h"
+
 
 #define SSA_DELIMITER '-'
 #define FORMULA_LABEL "L"
@@ -71,11 +74,12 @@ namespace weaver {
 
     /**
      * The interface for all theorem provers for doing craig interpolations.
-     * Theorem Provers should implement this interface.
      */
     class TheoremProverBase {
     public:
-        TheoremProverBase()
+        TheoremProverBase(Program* program) :
+            _program(program),
+            _vTable(&program->getVariableTable())
          {}
 
         /**
@@ -113,11 +117,21 @@ namespace weaver {
         virtual bool checkHoareTripe(const string& pre, Statement* statement, const string& post) const;
 
     protected:
+        virtual string setInterpolationOptions() const { assert(false && "Not implemented!"); }
+        virtual Interpolants processInterpolationResult(const string& result) const { assert(false && "Not implemented!"); }
+
+        virtual string setEntailmentOptions() const;
+        virtual string setCheckHoareTripeOptions() const;
+
         virtual string getSSAVarName(const string& varName, uint16_t i) const
         {return varName + SSA_DELIMITER + to_string(i); }
 
         virtual string getVarDeclaration(const string &varName, DataType dType) const;
-        virtual string getFormula(ASTNode* expr, Statement* stmt, SSANumberingTable& ssaNumberingTable, bool isLeftValue=false, bool insideAssume=false) const;
+        virtual string getFormula(ASTNode* expr,
+                                  Statement* stmt,
+                                  SSANumberingTable& ssaNumberingTable,
+                                  bool isLeftValue=false,
+                                  bool insideAssume=false) const;
 
         virtual inline string parenEnclose(const string& s) const
         { return "(" + s + ")"; }
@@ -198,6 +212,9 @@ namespace weaver {
 
         // This is for executing an arbitrary command on the system
         string exec(const string &command) const;
+
+        Program* _program;
+        VariableTable* _vTable;
     };
 }
 

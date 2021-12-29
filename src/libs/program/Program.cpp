@@ -76,6 +76,7 @@ void Program::init(InputType t, ANTLRInputStream input) {
     ASTBuilder builder(this, tree);
     builder.build();
 
+    cout << _ast.toString() << endl;
     cout << _vTable.toString() << endl;
 
     CFGBuilder cfgBuilder(this);

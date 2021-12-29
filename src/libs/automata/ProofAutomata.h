@@ -9,11 +9,7 @@ using namespace std;
 namespace weaver {
     class ProofAutomata : public NFA {
     public:
-        explicit ProofAutomata(Program* program);
-
-        ~ProofAutomata() {
-            delete _prover;
-        }
+        ProofAutomata(Program* program, TheoremProverBase* prover);
 
         /**
          * Adding assertions to this proof automata

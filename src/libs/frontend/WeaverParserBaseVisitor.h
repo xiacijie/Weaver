@@ -45,6 +45,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitSelectExpression(WeaverParser::SelectExpressionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual antlrcpp::Any visitExpression(WeaverParser::ExpressionContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -102,10 +106,6 @@ public:
   }
 
   virtual antlrcpp::Any visitStoreStatement(WeaverParser::StoreStatementContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitSelectStatement(WeaverParser::SelectStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 

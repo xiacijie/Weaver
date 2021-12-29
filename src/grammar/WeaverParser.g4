@@ -18,8 +18,10 @@ varDeclarationStatement: type varDeclarationBody SEMICOLON;
 
 operand: MINUS INTEGER | INTEGER | boolean | IDENTIFIER;
 
+selectExpression: IDENTIFIER LEFT_SQUARE_BRACKET expression RIGHT_SQUARE_BRACKET;
 expression:
             operand
+            | selectExpression
             | LEFT_PAREN expression RIGHT_PAREN
             | MINUS expression
             | PLUS expression
@@ -43,7 +45,6 @@ statement: assignmentStatement
            | assertStatement
            | assumeStatement
            | storeStatement
-           | selectStatement
            | conditionalStatement 
            | varDeclarationStatement
            | atomicStatement
@@ -61,5 +62,5 @@ whileStatement: WHILE LEFT_PAREN expression RIGHT_PAREN block;
 conditionalStatement: IF LEFT_PAREN expression RIGHT_PAREN statement (ELSE statement)?;
 parallelStatement: PARALLEL LEFT_PAREN INTEGER RIGHT_PAREN block*;
 atomicStatement: ATOMIC block;
-storeStatement: IDENTIFIER LEFT_SQUARE_BRACKET INTEGER RIGHT_SQUARE_BRACKET ASSIGN expression;
-selectStatement: IDENTIFIER LEFT_SQUARE_BRACKET INTEGER RIGHT_SQUARE_BRACKET;
+storeStatement: IDENTIFIER LEFT_SQUARE_BRACKET expression RIGHT_SQUARE_BRACKET ASSIGN expression SEMICOLON;
+

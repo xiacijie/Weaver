@@ -1,5 +1,6 @@
 int a[];
 
-a[1] = 2;
+int i = 1;
+a[i] = 2;
 
-assert(true);
+assert(a[i] == 2);

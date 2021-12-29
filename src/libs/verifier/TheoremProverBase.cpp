@@ -6,13 +6,94 @@
 
 using namespace std;
 using namespace weaver;
+string TheoremProverBase::setEntailmentOptions() const {
+    stringstream ss;
+    ss << setOption("print-success", getFalse());
+    ss << setLogic("QF_AUFLIA");
+    ss << endl;
+    return ss.str();
+}
+
+string TheoremProverBase::setCheckHoareTripeOptions() const {
+    stringstream ss;
+    ss << setOption("print-success", getFalse());
+    ss << setLogic("QF_AUFLIA");
+    ss << endl;
+    return ss.str();
+}
 
 Interpolants TheoremProverBase::generateInterpols(const Trace &trace) const {
-    assert(false && "Not Implemented!");
+    SSANumberingTable ssaTable;
+
+    stringstream SMTFile;
+
+    SMTFile << setInterpolationOptions();
+
+    for (int i = 0; i < trace.size(); i ++) {
+        Statement* stmt = trace[i];
+        ASTNode* node = stmt->getNode();
+
+        string formula = getFormula(node, stmt, ssaTable);
+        while (!ssaTable.isNotInitializedVarQueueEmpty()) {
+            auto var = ssaTable.popNotInitializedVar();
+            string varDecl = getVarDeclaration(getSSAVarName(var.first, var.second), _vTable->getVarType(var.first));
+            SMTFile << varDecl;
+            SMTFile << endl;
+        }
+
+        // need to declare those vars
+        while (!ssaTable.isInitializedVarQueueEmpty()) {
+            auto newSSAVar = ssaTable.popInitializedVar();
+            string ssaVarName = getSSAVarName(newSSAVar.first, newSSAVar.second);
+            string varDecl = getVarDeclaration(ssaVarName, _vTable->getVarType(newSSAVar.first));
+            SMTFile << varDecl;
+            SMTFile << endl;
+        }
+
+        SMTFile << getAssert(labelFormula(formula, FORMULA_LABEL + to_string(i)));
+        SMTFile << endl;
+
+    }
+
+    SMTFile << checkSat();
+    SMTFile << endl;
+
+    vector<string> labels;
+    labels.reserve(trace.size());
+    for (int i = 0; i < trace.size(); i ++) {
+        labels.push_back(FORMULA_LABEL + to_string(i));
+    }
+
+    SMTFile << getInterpolants(labels) << endl;
+
+    string result = exec(getCommand(SMTFile.str()));
+
+    return processInterpolationResult(result);
 }
 
 bool TheoremProverBase::entails(const string &formula1, const string &formula2) const {
-    assert(false && "Not Implemented!");
+    stringstream SMTFile;
+
+    SMTFile << setEntailmentOptions();
+
+    for (auto v : _vTable->getGlobalVariables()) {
+        SMTFile << getVarDeclaration(v.first, v.second) << endl;
+    }
+
+    SMTFile << getAssert(getNotFormula(getImplyFormula(formula1, formula2)));
+    SMTFile << endl;
+    SMTFile << checkSat();
+
+    string result = exec(getCommand(SMTFile.str()));
+
+    if (result.substr(0, 6) == "(error") {
+        assert(false && "Error with the theorem prover!\n");
+    }
+
+    if (result.at(0) == 'u')
+        return true;
+
+    return false;
 }
 
 bool TheoremProverBase::checkIndependenceRelation(Statement *s1, Statement *s2) const {
@@ -20,7 +101,153 @@ bool TheoremProverBase::checkIndependenceRelation(Statement *s1, Statement *s2) 
 }
 
 bool TheoremProverBase::checkHoareTripe(const string &pre, Statement *statement, const string &post) const {
-    assert(false && "Not Implemented!");
+    // pre-condition is false, then always valid
+    if (pre == getFalse()) {
+        return true;
+    }
+
+    // post-condition is true, then always valid
+    if (post == getTrue()) {
+        return true;
+    }
+
+    SSANumberingTable table;
+
+    stringstream SMTFile;
+    SMTFile << setCheckHoareTripeOptions();
+    SMTFile << endl;
+
+    string preCondition = pre;
+    string postCondition = post;
+
+    // update the ssa numbering of the pre-condition assertion
+    int startIndex = 0;
+    int endIndex = 0;
+
+    while (true) {
+        int length = preCondition.size();
+        if (endIndex >= length) {
+            break;
+        }
+
+        char currentChar = preCondition.at(endIndex);
+        if (currentChar == ' ' || currentChar == '(' || currentChar == ')') {
+            if (endIndex > startIndex) {
+                string part = preCondition.substr(startIndex, endIndex - startIndex);
+
+                // if the part is a variable
+                if (_vTable->isVarDeclared(part)) {
+                    if (!table.isUninitializedVarDeclared(part)) {
+                        table.declareNotInitializedVar(part);
+                    }
+
+                    preCondition.insert(endIndex, SSA_DELIMITER + to_string(0));
+                    endIndex += 2;
+                }
+            }
+
+            startIndex = endIndex + 1;
+        }
+
+        endIndex++;
+    }
+
+    while(!table.isNotInitializedVarQueueEmpty()) {
+        auto decl = table.popNotInitializedVar();
+        SMTFile << getVarDeclaration(
+                getSSAVarName(decl.first, decl.second),
+                _vTable->getVarType(decl.first))
+                << endl;
+
+    }
+
+    SMTFile << getAssert(preCondition) << endl;
+
+    // get the SMT formula for the statement
+    string formula = getFormula(statement->getNode(), statement, table);
+
+    while(!table.isNotInitializedVarQueueEmpty()) {
+        auto decl = table.popNotInitializedVar();
+        SMTFile << getVarDeclaration(
+                getSSAVarName(decl.first, decl.second),
+                _vTable->getVarType(decl.first))
+                << endl;
+
+    }
+
+    while(!table.isInitializedVarQueueEmpty()) {
+        auto decl = table.popInitializedVar();
+        SMTFile << getVarDeclaration(
+                getSSAVarName(decl.first, decl.second),
+                _vTable->getVarType(decl.first))
+                << endl;
+
+    }
+
+    SMTFile << getAssert(formula) << endl;
+
+    startIndex = 0;
+    endIndex = 0;
+    while (true) {
+        int length = postCondition.size();
+        if (endIndex >= length) {
+            break;
+        }
+
+        char currentChar = postCondition.at(endIndex);
+        if (currentChar == ' ' || currentChar == '(' || currentChar == ')') {
+            if (endIndex > startIndex) {
+                string part = postCondition.substr(startIndex, endIndex - startIndex);
+
+                // if the part is a variable
+                if (_vTable->isVarDeclared(part)) {
+
+                    if (table.isInitializedVarDeclared(part)) {
+                        string number = to_string(table.getVersionNumber(part));
+                        postCondition.insert(endIndex, SSA_DELIMITER + number);
+                        endIndex += number.size() + 1;
+                    }
+                    else {
+                        if (!table.isUninitializedVarDeclared(part)) {
+                            table.declareNotInitializedVar(part);
+                        }
+
+                        postCondition.insert(endIndex, SSA_DELIMITER + to_string(0));
+                        endIndex += 2;
+                    }
+
+                }
+            }
+
+            startIndex = endIndex + 1;
+        }
+
+        endIndex++;
+    }
+
+    while(!table.isNotInitializedVarQueueEmpty()) {
+        auto decl = table.popNotInitializedVar();
+        SMTFile << getVarDeclaration(
+                getSSAVarName(decl.first, decl.second),
+                _vTable->getVarType(decl.first))
+                << endl;
+
+    }
+
+    SMTFile << getAssert(getNotFormula(postCondition)) << endl;
+
+    SMTFile << checkSat();
+
+    string result = exec(getCommand(SMTFile.str()));
+
+    if (result.substr(0, 6) == "(error") {
+        assert(false && "Error with the theorem prover!\n");
+    }
+
+    if (result.at(0) == 'u')
+        return true;
+
+    return false;
 }
 
 void SSANumberingTable::declareNotInitializedVar(const string &varName) {
@@ -104,6 +331,7 @@ string TheoremProverBase::getVarDeclaration(const string &varName, DataType dTyp
     switch (dType) {
         case DataType::Int: ss << "Int"; break;
         case DataType::Bool: ss << "Bool"; break;
+        case DataType::IntArray: ss << "(Array Int Int)"; break;
         default:
             assert(false && "Error in getVarDeclaration!\n");
             break;

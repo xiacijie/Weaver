@@ -34,6 +34,8 @@ public:
 
     virtual antlrcpp::Any visitOperand(WeaverParser::OperandContext *context) = 0;
 
+    virtual antlrcpp::Any visitSelectExpression(WeaverParser::SelectExpressionContext *context) = 0;
+
     virtual antlrcpp::Any visitExpression(WeaverParser::ExpressionContext *context) = 0;
 
     virtual antlrcpp::Any visitComparisonOp(WeaverParser::ComparisonOpContext *context) = 0;
@@ -63,8 +65,6 @@ public:
     virtual antlrcpp::Any visitAtomicStatement(WeaverParser::AtomicStatementContext *context) = 0;
 
     virtual antlrcpp::Any visitStoreStatement(WeaverParser::StoreStatementContext *context) = 0;
-
-    virtual antlrcpp::Any visitSelectStatement(WeaverParser::SelectStatementContext *context) = 0;
 
 
 };

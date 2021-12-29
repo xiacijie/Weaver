@@ -26,11 +26,11 @@ public:
   enum {
     RuleProgram = 0, RuleType = 1, RuleAssignment = 2, RuleSingleVarDeclaration = 3, 
     RuleVarDeclarationBody = 4, RuleVarDeclarationStatement = 5, RuleOperand = 6, 
-    RuleExpression = 7, RuleComparisonOp = 8, RuleBoolean = 9, RuleStatement = 10, 
-    RuleBlock = 11, RuleAssignmentStatement = 12, RuleIncreaseStatement = 13, 
-    RuleDecreaseStatement = 14, RuleAssertStatement = 15, RuleAssumeStatement = 16, 
-    RuleWhileStatement = 17, RuleConditionalStatement = 18, RuleParallelStatement = 19, 
-    RuleAtomicStatement = 20, RuleStoreStatement = 21, RuleSelectStatement = 22
+    RuleSelectExpression = 7, RuleExpression = 8, RuleComparisonOp = 9, 
+    RuleBoolean = 10, RuleStatement = 11, RuleBlock = 12, RuleAssignmentStatement = 13, 
+    RuleIncreaseStatement = 14, RuleDecreaseStatement = 15, RuleAssertStatement = 16, 
+    RuleAssumeStatement = 17, RuleWhileStatement = 18, RuleConditionalStatement = 19, 
+    RuleParallelStatement = 20, RuleAtomicStatement = 21, RuleStoreStatement = 22
   };
 
   explicit WeaverParser(antlr4::TokenStream *input);
@@ -50,6 +50,7 @@ public:
   class VarDeclarationBodyContext;
   class VarDeclarationStatementContext;
   class OperandContext;
+  class SelectExpressionContext;
   class ExpressionContext;
   class ComparisonOpContext;
   class BooleanContext;
@@ -64,8 +65,7 @@ public:
   class ConditionalStatementContext;
   class ParallelStatementContext;
   class AtomicStatementContext;
-  class StoreStatementContext;
-  class SelectStatementContext; 
+  class StoreStatementContext; 
 
   class  ProgramContext : public antlr4::ParserRuleContext {
   public:
@@ -174,11 +174,28 @@ public:
 
   OperandContext* operand();
 
+  class  SelectExpressionContext : public antlr4::ParserRuleContext {
+  public:
+    SelectExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *LEFT_SQUARE_BRACKET();
+    ExpressionContext *expression();
+    antlr4::tree::TerminalNode *RIGHT_SQUARE_BRACKET();
+
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  SelectExpressionContext* selectExpression();
+
   class  ExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OperandContext *operand();
+    SelectExpressionContext *selectExpression();
     antlr4::tree::TerminalNode *LEFT_PAREN();
     std::vector<ExpressionContext *> expression();
     ExpressionContext* expression(size_t i);
@@ -242,7 +259,6 @@ public:
     AssertStatementContext *assertStatement();
     AssumeStatementContext *assumeStatement();
     StoreStatementContext *storeStatement();
-    SelectStatementContext *selectStatement();
     ConditionalStatementContext *conditionalStatement();
     VarDeclarationStatementContext *varDeclarationStatement();
     AtomicStatementContext *atomicStatement();
@@ -424,10 +440,11 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *LEFT_SQUARE_BRACKET();
-    antlr4::tree::TerminalNode *INTEGER();
+    std::vector<ExpressionContext *> expression();
+    ExpressionContext* expression(size_t i);
     antlr4::tree::TerminalNode *RIGHT_SQUARE_BRACKET();
     antlr4::tree::TerminalNode *ASSIGN();
-    ExpressionContext *expression();
+    antlr4::tree::TerminalNode *SEMICOLON();
 
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -435,22 +452,6 @@ public:
   };
 
   StoreStatementContext* storeStatement();
-
-  class  SelectStatementContext : public antlr4::ParserRuleContext {
-  public:
-    SelectStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *IDENTIFIER();
-    antlr4::tree::TerminalNode *LEFT_SQUARE_BRACKET();
-    antlr4::tree::TerminalNode *INTEGER();
-    antlr4::tree::TerminalNode *RIGHT_SQUARE_BRACKET();
-
-
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  SelectStatementContext* selectStatement();
 
 
   virtual bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;

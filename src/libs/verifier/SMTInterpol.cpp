@@ -122,66 +122,26 @@ bool SMTInterpol::checkIndependenceRelation(Statement *s1, Statement *s2) const 
     return false;
 }
 
-Interpolants SMTInterpol::generateInterpols(const Trace& trace) const {
 
-    SSANumberingTable ssaNumberingTable;
+string SMTInterpol::setInterpolationOptions() const {
+    stringstream ss;
+    ss << setOption("print-success", getFalse());
+    ss << setOption("produce-interpolants", getTrue());
+    ss << setLogic("QF_AUFLIA");
+    ss << setOption("simplify-interpolants", getTrue());
+    ss << setOption("print-terms-cse", getFalse());
+    ss << endl;
+    return ss.str();
+}
 
-    stringstream SMTFile;
-
-    SMTFile << setOption("print-success", getFalse());
-    SMTFile << setOption("produce-interpolants", getTrue());
-    SMTFile << setLogic("QF_UFLIA");
-    SMTFile << endl;
-
-    for (int i = 0; i < trace.size(); i ++) {
-        Statement* stmt = trace[i];
-        ASTNode* node = stmt->getNode();
-
-        string formula = getFormula(node, stmt, ssaNumberingTable);
-
-        while (!ssaNumberingTable.isNotInitializedVarQueueEmpty()) {
-            auto var = ssaNumberingTable.popNotInitializedVar();
-            string varDecl = getVarDeclaration(getSSAVarName(var.first, var.second), _vTable->getVarType(var.first));
-            SMTFile << varDecl;
-            SMTFile << endl;
-        }
-
-        // need to declare those vars
-        while (!ssaNumberingTable.isInitializedVarQueueEmpty()) {
-            auto newSSAVar = ssaNumberingTable.popInitializedVar();
-            string ssaVarName = getSSAVarName(newSSAVar.first, newSSAVar.second);
-            string varDecl = getVarDeclaration(ssaVarName, _vTable->getVarType(newSSAVar.first));
-            SMTFile << varDecl;
-            SMTFile << endl;
-        }
-
-
-        SMTFile << getAssert(labelFormula(formula, FORMULA_LABEL + to_string(i)));
-        SMTFile << endl;
-    }
-
-    SMTFile << checkSat();
-    SMTFile << endl;
-
-    vector<string> labels;
-
-    labels.reserve(trace.size());
-    for (int i = 0; i < trace.size(); i ++) {
-        labels.push_back(FORMULA_LABEL + to_string(i));
-    }
-
-    SMTFile << getInterpolants(labels);
-
-    string result = exec(getCommand(SMTFile.str()));
-
+Interpolants SMTInterpol::processInterpolationResult(const string &result) const {
     if (result.substr(0, 6) == "(error") {
         assert(false && "Error with the theorem prover!\n");
     }
 
     if (result.at(0) != 'u') { // if the SMT solver returns sat, then there is a counterexample
         // return the empty interpolants
-        Interpolants  interpolants;
-        return interpolants;
+        return {};
     }
 
     int i = 0;
@@ -194,32 +154,14 @@ Interpolants SMTInterpol::generateInterpols(const Trace& trace) const {
     return extractInterpolants(interpolantsString);
 }
 
-bool SMTInterpol::entails(const string &formula1, const string &formula2) const {
-    stringstream SMTFile;
-
-    SMTFile << setOption("print-success", getFalse());
-    SMTFile << setLogic("QF_UFLIA");
-    SMTFile << endl;
-
-    for (auto v : _vTable->getGlobalVariables()) {
-        SMTFile << getVarDeclaration(v.first, v.second) << endl;
-    }
-
-    SMTFile << getAssert(getNotFormula(getImplyFormula(formula1, formula2)));
-    SMTFile << endl;
-    SMTFile << checkSat();
-
-    string result = exec(getCommand(SMTFile.str()));
-
-    if (result.substr(0, 6) == "(error") {
-        assert(false && "Error with the theorem prover!\n");
-    }
-
-    if (result.at(0) == 'u')
-        return true;
-
-    return false;
+string SMTInterpol::setEntailmentOptions() const {
+    stringstream ss;
+    ss << setOption("print-success", getFalse());
+    ss << setLogic("QF_AUFLIA");
+    ss << endl;
+    return ss.str();
 }
+
 
 bool SMTInterpol::checkHoareTripe(const string &pre, Statement *statement, const string &post) const {
     // pre-condition is false, then always valid
