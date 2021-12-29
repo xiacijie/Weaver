@@ -18,8 +18,9 @@ public:
     INC = 14, DEC = 15, EQ = 16, NEQ = 17, LTE = 18, GTE = 19, LT = 20, 
     GT = 21, AND = 22, OR = 23, NOT = 24, STAR = 25, Q_MARK = 26, PLUS = 27, 
     MINUS = 28, ASSIGN = 29, COLON = 30, COMA = 31, SEMICOLON = 32, LEFT_BRACE = 33, 
-    RIGHT_BRACE = 34, LEFT_PAREN = 35, RIGHT_PAREN = 36, NEWLINE = 37, TAB = 38, 
-    WHITE_SPACE = 39, COMMENT = 40, LINE_COMMENT = 41
+    RIGHT_BRACE = 34, LEFT_PAREN = 35, RIGHT_PAREN = 36, LEFT_SQUARE_BRACKET = 37, 
+    RIGHT_SQUARE_BRACKET = 38, NEWLINE = 39, TAB = 40, WHITE_SPACE = 41, 
+    COMMENT = 42, LINE_COMMENT = 43
   };
 
   enum {
@@ -29,7 +30,7 @@ public:
     RuleBlock = 11, RuleAssignmentStatement = 12, RuleIncreaseStatement = 13, 
     RuleDecreaseStatement = 14, RuleAssertStatement = 15, RuleAssumeStatement = 16, 
     RuleWhileStatement = 17, RuleConditionalStatement = 18, RuleParallelStatement = 19, 
-    RuleAtomicStatement = 20
+    RuleAtomicStatement = 20, RuleStoreStatement = 21, RuleSelectStatement = 22
   };
 
   explicit WeaverParser(antlr4::TokenStream *input);
@@ -62,7 +63,9 @@ public:
   class WhileStatementContext;
   class ConditionalStatementContext;
   class ParallelStatementContext;
-  class AtomicStatementContext; 
+  class AtomicStatementContext;
+  class StoreStatementContext;
+  class SelectStatementContext; 
 
   class  ProgramContext : public antlr4::ParserRuleContext {
   public:
@@ -113,6 +116,8 @@ public:
     SingleVarDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *LEFT_SQUARE_BRACKET();
+    antlr4::tree::TerminalNode *RIGHT_SQUARE_BRACKET();
     AssignmentContext *assignment();
 
 
@@ -236,6 +241,8 @@ public:
     WhileStatementContext *whileStatement();
     AssertStatementContext *assertStatement();
     AssumeStatementContext *assumeStatement();
+    StoreStatementContext *storeStatement();
+    SelectStatementContext *selectStatement();
     ConditionalStatementContext *conditionalStatement();
     VarDeclarationStatementContext *varDeclarationStatement();
     AtomicStatementContext *atomicStatement();
@@ -410,6 +417,40 @@ public:
   };
 
   AtomicStatementContext* atomicStatement();
+
+  class  StoreStatementContext : public antlr4::ParserRuleContext {
+  public:
+    StoreStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *LEFT_SQUARE_BRACKET();
+    antlr4::tree::TerminalNode *INTEGER();
+    antlr4::tree::TerminalNode *RIGHT_SQUARE_BRACKET();
+    antlr4::tree::TerminalNode *ASSIGN();
+    ExpressionContext *expression();
+
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  StoreStatementContext* storeStatement();
+
+  class  SelectStatementContext : public antlr4::ParserRuleContext {
+  public:
+    SelectStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *LEFT_SQUARE_BRACKET();
+    antlr4::tree::TerminalNode *INTEGER();
+    antlr4::tree::TerminalNode *RIGHT_SQUARE_BRACKET();
+
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  SelectStatementContext* selectStatement();
 
 
   virtual bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;

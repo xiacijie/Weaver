@@ -21,7 +21,7 @@ namespace weaver {
 
         unordered_map<string, DataType>& getGlobalVariables();
 
-        void print();
+        string toString();
 
     private:
         // the uint16_t represents the scope number: 0 is the global scope

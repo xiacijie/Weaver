@@ -72,8 +72,11 @@ void Program::init(InputType t, ANTLRInputStream input) {
         cerr << "Weaver: Syntax Error!\n" << endl;
         abort();
     }
+
     ASTBuilder builder(this, tree);
     builder.build();
+
+    cout << _vTable.toString() << endl;
 
     CFGBuilder cfgBuilder(this);
     cout << "Building CFG..." << endl;

@@ -101,6 +101,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitStoreStatement(WeaverParser::StoreStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitSelectStatement(WeaverParser::SelectStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
 
 };
 

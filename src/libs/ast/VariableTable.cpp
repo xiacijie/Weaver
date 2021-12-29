@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 #include "VariableTable.h"
 #include "log.h"
 
@@ -39,13 +40,13 @@ bool VariableTable::isVarDeclared(const string &varName) {
     return _varTable.find(varName) != _varTable.end();
 }
 
-void VariableTable::print() {
-    string s = "VARIABLE TABLE:\n"; 
+string VariableTable::toString() {
+    stringstream ss;
+    ss << "VARIABLE TABLE:" << endl;
 
     for (auto& it: _varTable) {
-        s += it.first + " : " + DataTypeLabels[it.second] + "\n";
+        ss << it.first + " : " + DataTypeLabels[it.second] + "\n";
     }
 
-    logger.verbose(s);
-
+    return ss.str();
 }

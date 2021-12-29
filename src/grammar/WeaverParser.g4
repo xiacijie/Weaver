@@ -12,7 +12,7 @@ program: statement* EOF;
 type: INT | BOOL;
 
 assignment : IDENTIFIER ASSIGN expression;
-singleVarDeclaration: IDENTIFIER | assignment;
+singleVarDeclaration: IDENTIFIER | IDENTIFIER LEFT_SQUARE_BRACKET RIGHT_SQUARE_BRACKET | assignment;
 varDeclarationBody: singleVarDeclaration (COMA singleVarDeclaration)*;
 varDeclarationStatement: type varDeclarationBody SEMICOLON;
 
@@ -42,6 +42,8 @@ statement: assignmentStatement
            | whileStatement
            | assertStatement
            | assumeStatement
+           | storeStatement
+           | selectStatement
            | conditionalStatement 
            | varDeclarationStatement
            | atomicStatement
@@ -59,3 +61,5 @@ whileStatement: WHILE LEFT_PAREN expression RIGHT_PAREN block;
 conditionalStatement: IF LEFT_PAREN expression RIGHT_PAREN statement (ELSE statement)?;
 parallelStatement: PARALLEL LEFT_PAREN INTEGER RIGHT_PAREN block*;
 atomicStatement: ATOMIC block;
+storeStatement: IDENTIFIER LEFT_SQUARE_BRACKET INTEGER RIGHT_SQUARE_BRACKET ASSIGN expression;
+selectStatement: IDENTIFIER LEFT_SQUARE_BRACKET INTEGER RIGHT_SQUARE_BRACKET;

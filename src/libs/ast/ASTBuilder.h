@@ -41,6 +41,7 @@ namespace  weaver {
         Any visitParallelStatement(WeaverParser::ParallelStatementContext *ctx) override;
         Any visitIncreaseStatement(WeaverParser::IncreaseStatementContext* ctx) override;
         Any visitDecreaseStatement(WeaverParser::DecreaseStatementContext* ctx) override;
+        Any visitStoreStatement(WeaverParser::StoreStatementContext *ctx) override;
 
         void declareVariable(const string& varName, DataType type);
         void ensureVarIsNotDeclared(const string& varName);

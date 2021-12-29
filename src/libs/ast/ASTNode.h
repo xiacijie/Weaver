@@ -9,10 +9,10 @@ namespace weaver {
     class Program;
 
     enum DataType {
-        Int, Bool, NoType
+        Int, Bool, NoType, IntArray
     };
 
-    const string DataTypeLabels[] = {"Int", "Bool", "NoType"};
+    const string DataTypeLabels[] = {"Int", "Bool", "NoType", "IntArray"};
 
     enum NodeType {
         Programme,
@@ -30,7 +30,9 @@ namespace weaver {
         Negation,
         CompareGT, CompareGTE, CompareLT, CompareLTE, CompareEQ, CompareNEQ,
         And, Or, Not,
-        NoAction
+        NoAction,
+        Select,
+        Store
     };
 
     const string NodeTypeLabels[] = {"Programme",
@@ -48,7 +50,9 @@ namespace weaver {
                                      "Negation",
                                      "CompareGT", "CompareGTE", "CompareLT", "CompareLTE", "CompareEQ", "CompareNEQ",
                                      "And", "Or", "Not",
-                                     "NoAction"
+                                     "NoAction",
+                                     "Select",
+                                     "Store"
     };
 
     enum BooleanValue {
@@ -86,11 +90,6 @@ namespace weaver {
         bool isLoop() const { return _nType == NodeType::Loop; }
         bool isAssert() const { return _nType == NodeType::Assert; }
         bool isAssume() const { return _nType == NodeType::Assume; }
-        bool isInt() const { return _dType == DataType::Int; }
-        bool isBool() const { return _dType == DataType::Bool; }
-        bool isIntConst() const { return isConstant() && isInt(); }
-        bool isBoolConst() const { return isConstant() && isBool(); }
-        bool isNonDeterBool() const { return isBoolConst() && _boolVal == BooleanValue::NonDeter; }
         bool isAssign() const { return _nType == NodeType::Assignment; }
         bool isProgram() const { return _nType == NodeType::Programme; }
         bool isParallel() const { return _nType == NodeType::Parallel; }
@@ -104,8 +103,16 @@ namespace weaver {
         bool isNegation() const { return _nType == NodeType::Negation; }
         bool isNot() const { return _nType == NodeType::Not; }
         bool isNoAction() const { return _nType == NodeType::NoAction; }
-
         bool isId() const { return _nType == NodeType::Identifier; }
+        bool isSelect() const { return _nType == NodeType::Select; }
+        bool isStore() const { return _nType == NodeType::Store; }
+
+        bool isInt() const { return _dType == DataType::Int; }
+        bool isBool() const { return _dType == DataType::Bool; }
+        bool isIntConst() const { return isConstant() && isInt(); }
+        bool isBoolConst() const { return isConstant() && isBool(); }
+        bool isNonDeterBool() const { return isBoolConst() && _boolVal == BooleanValue::NonDeter; }
+        bool isIntArray() const { return _dType == DataType::IntArray; }
 
         bool isComparison() const { return _nType == NodeType::CompareEQ || _nType == NodeType::CompareNEQ ||
             _nType == NodeType::CompareGT || _nType == NodeType::CompareGTE || _nType == NodeType::CompareLT ||

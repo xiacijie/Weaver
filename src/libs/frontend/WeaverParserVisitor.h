@@ -62,6 +62,10 @@ public:
 
     virtual antlrcpp::Any visitAtomicStatement(WeaverParser::AtomicStatementContext *context) = 0;
 
+    virtual antlrcpp::Any visitStoreStatement(WeaverParser::StoreStatementContext *context) = 0;
+
+    virtual antlrcpp::Any visitSelectStatement(WeaverParser::SelectStatementContext *context) = 0;
+
 
 };
 

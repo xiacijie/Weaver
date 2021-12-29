@@ -19,11 +19,6 @@ namespace weaver {
     class AST {
     public:
         AST() : _root(nullptr) {}
-        ~AST() {
-
-        }
-
-
 
         void setRoot(ASTNode* root) { _root = root; };
         string toString();

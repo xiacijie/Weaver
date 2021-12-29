@@ -75,11 +75,28 @@ Any ASTBuilder::visitVarDeclarationStatement(WeaverParser::VarDeclarationStateme
     vector<ASTNode*> assignments;
 
     for (const auto& singleVarDecl : body->singleVarDeclaration()) {
+        bool isArrayDecl = false;
+        if (singleVarDecl->LEFT_SQUARE_BRACKET()) { // it is array declaration
+            string varName = singleVarDecl->IDENTIFIER()->getText();
+            DataType arrayType;
 
-        string varName = singleVarDecl->assignment() ? singleVarDecl->assignment()->IDENTIFIER()->getText()
-                            : singleVarDecl->IDENTIFIER()->getText();
+            switch (getDataType(ctx->type())) {
+                case DataType::Int:
+                    arrayType = DataType::IntArray;
+                    break;
+                default:
+                    assert(false && "Error");
+            }
 
-        declareVariable(varName, getDataType(ctx->type()));
+            declareVariable(varName, arrayType);
+        }
+        else {
+            string varName = singleVarDecl->assignment() ? singleVarDecl->assignment()->IDENTIFIER()->getText()
+                                                         : singleVarDecl->IDENTIFIER()->getText();
+
+            declareVariable(varName, getDataType(ctx->type()));
+        }
+
 
         // if it is an assignment
         if (singleVarDecl->assignment()) {
@@ -137,7 +154,6 @@ Any ASTBuilder::visitProgram(WeaverParser::ProgramContext *ctx) {
         throwError("Program has no Assertions!");
     }
 
-    _varTable->print();
     return programNode;
 }
 
@@ -518,4 +534,11 @@ Any ASTBuilder::visitDecreaseStatement(WeaverParser::DecreaseStatementContext *c
     ASTNode* assignmentNode = ASTNode::create(NodeType::Assignment, DataType::Int, _program, {idNode, subExpr});
 
     return assignmentNode;
+}
+
+Any ASTBuilder::visitStoreStatement(WeaverParser::StoreStatementContext *ctx) {
+    string varName = ctx->IDENTIFIER()->getText();
+
+    ensureVarIsDeclared(varName);
+
 }
