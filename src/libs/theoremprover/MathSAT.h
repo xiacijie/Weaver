@@ -2,10 +2,14 @@
 
 #include "TheoremProverBase.h"
 #include "../ast/VariableTable.h"
-#include "../program/Program.h"
+#include "../util/util.h"
+
+using namespace util;
 
 namespace weaver {
-    class MathSAT : public TheoremProverBase{
+    class program;
+
+    class MathSAT : public TheoremProverBase {
     public:
         MathSAT(Program* program) :
             TheoremProverBase(program)

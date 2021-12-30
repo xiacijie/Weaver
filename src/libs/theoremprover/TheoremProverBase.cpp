@@ -1,11 +1,18 @@
 #include "TheoremProverBase.h"
 #include <cstdio>
 #include <memory>
+#include "../program/Program.h"
 
 #define BUFFER_SIZE 128
 
 using namespace std;
 using namespace weaver;
+
+TheoremProverBase::TheoremProverBase(Program* program) :
+    _program(program),
+    _vTable(&program->getVariableTable())
+{}
+
 string TheoremProverBase::setEntailmentOptions() const {
     stringstream ss;
     ss << setOption("print-success", getFalse());

@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include "antlr4-runtime.h"
 #include "Program.h"
-#include "../verifier/SMTInterpol.h"
 #include "WeaverLexer.h"
 #include "WeaverParser.h"
 #include "ASTBuilder.h"
@@ -12,17 +11,10 @@
 #include "util.h"
 #include "log.h"
 
-
 using namespace weaver;
 using namespace std;
 using namespace antlr4;
 using namespace antlrcpp;
-
-//vector<Thread>& Program::getParallelThreads(uint32_t state) {
-//    const auto& it = _threads.find(state);
-//    assert(it == _threads.end() && "This is not a parallel state");
-//    return it->second;
-//}
 
 extern logg::Logger logger;
 
@@ -142,41 +134,6 @@ string Program::independentStatementsToString() {
     return ss.str();
 }
 
-//string Program::parallelStatesToString() {
-//    stringstream ss;
-//    ss << "This Program has " << _threads.size() << " parallel states in total" << endl;
-//    ss << "Parallel States: " << endl;
-//    for (auto& it : _threads) {
-//        ss << it.first << " ";
-//    }
-//
-//    ss << endl << endl;
-//
-//    for (auto& it : _threads) {
-//        ss  << "Parallel State: "<< it.first << endl;
-//        ss << it.second.size() << " threads in total" << endl;
-//        for (auto& t: it.second) {
-//            ss << "# Thread: " << t.getID() << endl;
-//            ss << t.getCFG().toString(t.getAlphabet()) << endl;
-//        }
-//    }
-//
-//    return ss.str();
-//}
-
-//vector<Thread>& Program::createParallelThreads(uint32_t state, uint32_t numThreads) {
-//    vector<Thread> threads;
-//    _threads[state] = threads;
-//
-//    for (int i = 0 ; i < numThreads; i++) {
-//        Thread thread(i+1);
-//        _threads[state].push_back(thread);
-//    }
-//
-//    return _threads[state];
-//}
-
-
 Program::~Program() {
     deallocateASTNodePool();
     deallocateStatementPool();
@@ -184,14 +141,14 @@ Program::~Program() {
 
 void Program::buildDependenceRelation() {
 
-    TheoremProverBase* verifier = new SMTInterpol(this);
+    TheoremProverBase* prover = getMathSAT();
 
     for (int i = 0; i < _statementPool.size(); i ++) {
         for (int j = i + 1; j < _statementPool.size(); j ++) {
             Statement* s1 = _statementPool[i];
             Statement* s2 = _statementPool[j];
 
-            bool isInDependent = verifier->checkIndependenceRelation(s1, s2);
+            bool isInDependent = prover->checkIndependenceRelation(s1, s2);
             if (isInDependent) {
                 addIndependentStatements(s1, s2);
             }
@@ -201,9 +158,6 @@ void Program::buildDependenceRelation() {
 
         }
     }
-
-
-    delete verifier;
 }
 
 ASTNode* Program::getEquivalentASTNode(ASTNode *node) {
@@ -247,12 +201,6 @@ bool Program::isDependent(Statement *first, Statement *second) {
             return true;
         }
     }
-
-//    if (_dependenceRelation.find(second) != _dependenceRelation.end()) {
-//        if (_dependenceRelation[second].find(first) != _dependenceRelation[second].end()) {
-//            return true;
-//        }
-//    }
 
     return false;
 }

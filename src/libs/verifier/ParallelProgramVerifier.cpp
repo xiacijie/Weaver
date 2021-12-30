@@ -1,7 +1,7 @@
 #include "ParallelProgramVerifier.h"
-#include "SMTInterpol.h"
-#include "MathSAT.h"
-#include "Yices.h"
+#include "../theoremprover/SMTInterpol.h"
+#include "../theoremprover/MathSAT.h"
+#include "../theoremprover/Yices.h"
 #include "InterpolantAutomataBuilder.h"
 #include "../automata/ProofAutomata.h"
 
@@ -92,7 +92,7 @@ bool ParallelProgramVerifier::verify() {
     else {
 
         // start with an empty proof automata
-        auto* proof = new ProofAutomata(program, yices);
+        auto* proof = new ProofAutomata(program, _program->getYices());
 
         int round = 1;
         while (true) {
@@ -119,7 +119,7 @@ bool ParallelProgramVerifier::verify() {
                 cout << endl;
 
                 // This trace must be non-empty
-                Interpolants interpols = mathSat->generateInterpols(errorTrace);
+                Interpolants interpols = _program->getMathSAT()->generateInterpols(errorTrace);
 
                 if (interpols.empty()) {
                     cerr << "This Program is Incorrect!" << endl;

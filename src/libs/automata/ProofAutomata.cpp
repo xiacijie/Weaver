@@ -1,5 +1,6 @@
 #include "ProofAutomata.h"
-#include "../verifier/SMTInterpol.h"
+#include "../theoremprover/SMTInterpol.h"
+#include "../program/Program.h"
 
 using namespace weaver;
 

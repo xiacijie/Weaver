@@ -1,5 +1,5 @@
 #pragma once
-#include "TheoremProverBase.h"
+#include "../theoremprover/TheoremProverBase.h"
 #include "../automata/NFA.h"
 
 namespace weaver {

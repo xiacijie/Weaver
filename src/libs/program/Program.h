@@ -7,9 +7,9 @@
 #include "../automata/NFA.h"
 #include "Thread.h"
 #include "antlr4-runtime.h"
-
-
-
+#include "../theoremprover/MathSAT.h"
+#include "../theoremprover/Yices.h"
+#include "../theoremprover/SMTInterpol.h"
 
 using namespace std;
 
@@ -26,23 +26,28 @@ namespace weaver {
     class Program {
 
     public:
-        Program() : _totalThreads(0) {}
+        Program() :
+            _totalThreads(0),
+            _SMTInterpol(this),
+            _MathSAT(this),
+            _Yices(this)
+            {}
+
         ~Program();
 
         VariableTable& getVariableTable()  { return _vTable; }
         AST& getAST() { return _ast; }
         NFA& getCFG() { return _cfg; }
         Alphabet& getAlphabet() { return _alphabet; }
+        SMTInterpol* getSMTInterpol() { return &_SMTInterpol; }
+        Yices* getYices() { return &_Yices; }
+        MathSAT* getMathSAT() { return &_MathSAT; }
 
         void init(string); // filename 
         void init(InputType, string); // code 
         void init(InputType, antlr4::ANTLRInputStream); // code 
         void addASTNodeToPool(ASTNode* node) { _nodePool.push_back(node); }
         void addStatementToPool(Statement* stmt) { _statementPool.push_back(stmt); _statementsByThread[stmt->getThreadID()].insert(stmt); }
-
-//        vector<Thread>& getParallelThreads(uint32_t state);
-//        bool isParallelState(uint32_t state) { return _threads.find(state) != _threads.end(); }
-//        vector<Thread>& createParallelThreads(uint32_t state, uint32_t numThreads);
 
         /**
          * Get equivalent ASTNode that was created earlier
@@ -69,7 +74,6 @@ namespace weaver {
 
         size_t getNumASTNodes() { return _nodePool.size(); }
 
-//      string parallelStatesToString();
         string dependentStatementsToString();
         string independentStatementsToString();
 
@@ -83,9 +87,6 @@ namespace weaver {
         void deallocateStatementPool() { for (const auto& n : _statementPool) delete n; }
         void addDependentStatements(Statement* first, Statement* second);
         void addIndependentStatements(Statement* first, Statement* second);
-
-//        // state to threads mappings
-//        unordered_map<uint32_t, vector<Thread>> _threads;
 
         VariableTable _vTable;
         AST _ast;
@@ -101,6 +102,13 @@ namespace weaver {
 
         // disjoint statements by their thread number
         unordered_map<uint16_t, unordered_set<Statement*>> _statementsByThread;
+
+        //theorem provers
+        SMTInterpol _SMTInterpol;
+        Yices _Yices;
+        MathSAT _MathSAT;
+
+
     };
 
 }

@@ -7,8 +7,6 @@
 #include "../ast/AST.h"
 #include <sstream>
 #include "../program/Statement.h"
-#include "../program/Program.h"
-
 
 #define SSA_DELIMITER '-'
 #define FORMULA_LABEL "L"
@@ -16,6 +14,7 @@
 using namespace std;
 
 namespace weaver {
+    class Program;
 
     /**
      * Program trace
@@ -77,10 +76,8 @@ namespace weaver {
      */
     class TheoremProverBase {
     public:
-        TheoremProverBase(Program* program) :
-            _program(program),
-            _vTable(&program->getVariableTable())
-         {}
+        TheoremProverBase(Program* program);
+
 
         /**
          * Do craig interpolation on a sequence of program statements (trace)

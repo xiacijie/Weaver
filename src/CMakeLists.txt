@@ -46,6 +46,7 @@ include_directories(${PROJECT_SOURCE_DIR}/libs/program)
 include_directories(${PROJECT_SOURCE_DIR}/libs/cfg)
 include_directories(${PROJECT_SOURCE_DIR}/libs/ast)
 include_directories(${PROJECT_SOURCE_DIR}/libs/automata)
+include_directories(${PROJECT_SOURCE_DIR}/libs/theoremprover)
 include_directories(${PROJECT_SOURCE_DIR}/libs/verifier)
 include_directories(${PROJECT_SOURCE_DIR}/libs/util)
 include_directories(${PROJECT_SOURCE_DIR}/libs/config)
@@ -57,6 +58,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/libs/config)
 add_subdirectory(${PROJECT_SOURCE_DIR}/libs/program)
 add_subdirectory(${PROJECT_SOURCE_DIR}/libs/util)
 add_subdirectory(${PROJECT_SOURCE_DIR}/libs/verifier)
+add_subdirectory(${PROJECT_SOURCE_DIR}/libs/theoremprover)
 
 add_library(frontend
         ${ANTLR_WeaverGrammarLexer_CXX_OUTPUTS}
@@ -74,6 +76,7 @@ target_link_libraries(weaver
         ast
         cfg
         verifier
+        theoremprover
         config
        )
 
@@ -98,6 +101,7 @@ target_link_libraries(tests PRIVATE
         ast
         cfg
         verifier
+        theoremprover
        )
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

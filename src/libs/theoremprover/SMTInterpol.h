@@ -1,16 +1,15 @@
 #pragma once
 #include "TheoremProverBase.h"
-#include "../program/Program.h"
 #include "../ast/VariableTable.h"
 
 namespace weaver {
+    class Program;
+
     class SMTInterpol : public TheoremProverBase{
     public:
         SMTInterpol(Program* program) :
                 TheoremProverBase(program)
             {}
-
-        bool checkIndependenceRelation(Statement* s1, Statement* s2) const override;
 
     private:
         string setInterpolationOptions() const override;

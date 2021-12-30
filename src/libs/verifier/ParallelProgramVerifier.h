@@ -1,6 +1,6 @@
 #pragma once
 #include "../program/Program.h"
-#include "TheoremProverBase.h"
+#include "../theoremprover/TheoremProverBase.h"
 #include <functional>
 
 namespace weaver {

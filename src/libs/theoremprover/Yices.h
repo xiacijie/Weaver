@@ -2,7 +2,9 @@
 #include "TheoremProverBase.h"
 
 namespace weaver {
-    class Yices : public TheoremProverBase{
+    class Program;
+
+    class Yices : public TheoremProverBase {
     public:
         Yices(Program* program) :
             TheoremProverBase(program)

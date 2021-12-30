@@ -2,7 +2,7 @@
 
 #include "NFA.h"
 #include <unordered_map>
-#include "../verifier/TheoremProverBase.h"
+#include "../theoremprover/TheoremProverBase.h"
 
 using namespace std;
 

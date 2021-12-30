@@ -2,7 +2,7 @@
 #include "../program/Program.h"
 #include "../automata/NFA.h"
 
-#include "SMTInterpol.h"
+#include "../theoremprover/SMTInterpol.h"
 #include <vector>
 
 using namespace std;
