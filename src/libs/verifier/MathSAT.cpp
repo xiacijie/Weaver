@@ -22,13 +22,10 @@ Interpolants MathSAT::processInterpolationResult(const string &result) const {
 
     vector<string> lines = util::tokenize(result, '\n');
 
-    for (auto& line: lines) {
-        removeSSANumberingPortion(line);
-    }
-
     Interpolants interpolants;
     interpolants.push_back("true");
     for (int i = 1; i < lines.size(); i++) {
+        removeSSANumberingPortion(lines[i]);
         interpolants.push_back(lines[i]);
     }
     interpolants.push_back("false");

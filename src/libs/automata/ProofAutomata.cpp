@@ -34,7 +34,6 @@ ProofAutomata::ProofAutomata(Program *program, TheoremProverBase* prover) {
 void ProofAutomata::extend(const Interpolants &interpolants, const Alphabet &alphabet) {
     for (const auto& interpol: interpolants) {
         // check if this is a new assertion that is not in the proof
-        cout << interpol << endl;
         if (_assertionMap.find(interpol) == _assertionMap.end()) {
             uint32_t newState = getNumStates();
             addState(newState);

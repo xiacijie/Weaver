@@ -74,6 +74,7 @@ Interpolants TheoremProverBase::generateInterpols(const Trace &trace) const {
 
     SMTFile << getInterpolants(labels) << endl;
     string result = exec(getCommand(SMTFile.str()));
+
     return processInterpolationResult(result);
 }
 
@@ -248,9 +249,15 @@ bool TheoremProverBase::checkHoareTripe(const string &pre, Statement *statement,
         }
 
         char currentChar = preCondition.at(endIndex);
-        if (currentChar == ' ' || currentChar == '(' || currentChar == ')') {
-            if (endIndex > startIndex) {
-                string part = preCondition.substr(startIndex, endIndex - startIndex);
+        if (currentChar == ' ' || currentChar == '(' || currentChar == ')' || endIndex == length - 1) {
+            if (endIndex >= startIndex) {
+                int cutLength = endIndex - startIndex;
+
+                if (endIndex == length - 1 && currentChar != ')') {
+                    cutLength ++;
+                }
+
+                string part = preCondition.substr(startIndex, cutLength);
 
                 // if the part is a variable
                 if (_vTable->isVarDeclared(part)) {
@@ -258,7 +265,13 @@ bool TheoremProverBase::checkHoareTripe(const string &pre, Statement *statement,
                         table.declareNotInitializedVar(part);
                     }
 
-                    preCondition.insert(endIndex, SSA_DELIMITER + to_string(0));
+                    if (endIndex == length - 1 && currentChar != ')') {
+                        preCondition.insert(endIndex+1, SSA_DELIMITER + to_string(0));
+                    }
+                    else {
+                        preCondition.insert(endIndex, SSA_DELIMITER + to_string(0));
+                    }
+
                     endIndex += 2;
                 }
             }
@@ -312,16 +325,29 @@ bool TheoremProverBase::checkHoareTripe(const string &pre, Statement *statement,
         }
 
         char currentChar = postCondition.at(endIndex);
-        if (currentChar == ' ' || currentChar == '(' || currentChar == ')') {
-            if (endIndex > startIndex) {
-                string part = postCondition.substr(startIndex, endIndex - startIndex);
+        if (currentChar == ' ' || currentChar == '(' || currentChar == ')' || endIndex == length - 1) {
+            if (endIndex >= startIndex) {
+                int cutLength = endIndex - startIndex;
+
+                if (endIndex == length - 1 && currentChar != ')') {
+                    cutLength++;
+                }
+
+                string part = postCondition.substr(startIndex, cutLength);
 
                 // if the part is a variable
                 if (_vTable->isVarDeclared(part)) {
 
                     if (table.isInitializedVarDeclared(part)) {
                         string number = to_string(table.getVersionNumber(part));
-                        postCondition.insert(endIndex, SSA_DELIMITER + number);
+
+                        if (endIndex == length - 1 && currentChar != ')') {
+                            postCondition.insert(endIndex+1, SSA_DELIMITER + number);
+                        }
+                        else {
+                            postCondition.insert(endIndex, SSA_DELIMITER + number);
+                        }
+
                         endIndex += number.size() + 1;
                     }
                     else {
@@ -329,7 +355,14 @@ bool TheoremProverBase::checkHoareTripe(const string &pre, Statement *statement,
                             table.declareNotInitializedVar(part);
                         }
 
-                        postCondition.insert(endIndex, SSA_DELIMITER + to_string(0));
+                        if (endIndex == length - 1 && currentChar != ')') {
+                            postCondition.insert(endIndex+1, SSA_DELIMITER + to_string(0));
+                        }
+                        else {
+                            postCondition.insert(endIndex, SSA_DELIMITER + to_string(0));
+                        }
+
+
                         endIndex += 2;
                     }
 
@@ -657,7 +690,8 @@ void TheoremProverBase::removeSSANumberingPortion(string& interpolant) const{
 
         if (currentChar == SSA_DELIMITER) {
             // make sure the '-' is not the subtraction
-            if (!(interpolant.at(endIndex-1) == ' ' || interpolant.at(endIndex-1) == '(')) {
+            char lastChar = interpolant.at(endIndex-1);
+            if (isalpha(lastChar) || isdigit(lastChar) || lastChar == '_') {
                 ssaPortionFound = true;
                 startIndex = endIndex;
             }
@@ -665,6 +699,11 @@ void TheoremProverBase::removeSSANumberingPortion(string& interpolant) const{
         }
         else if (ssaPortionFound && (!isdigit(currentChar) || endIndex == length - 1)) {
             int cutLength = endIndex - startIndex;
+
+            if (endIndex == length - 1 && isdigit(currentChar)) {
+                cutLength ++;
+            }
+
             interpolant.erase(startIndex, cutLength);
 
             endIndex = startIndex - 1;

@@ -131,6 +131,11 @@ bool ParallelProgramVerifier::verify() {
                     break;
                 }
 
+                cout << "Interpolants: ";
+                for (const auto& i: interpols) {
+                    cout << i << endl;
+                }
+
                 proof->extend(interpols, program->getAlphabet());
             }
             else {
