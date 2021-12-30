@@ -4,17 +4,11 @@ using namespace weaver;
 
 string MathSAT::setInterpolationOptions() const {
     stringstream ss;
-    ss << setOption("produce-interpolants", getTrue());;
+    ss << setOption("produce-interpolants", getTrue());
     ss << endl;
     return ss.str();
 }
 
-string MathSAT::setEntailmentOptions() const {
-    stringstream ss;
-    ss << setLogic("QF_AUFLIA");
-    ss << endl;
-    return ss.str();
-}
 
 Interpolants MathSAT::processInterpolationResult(const string &result) const {
     if (result.substr(0, 6) == "(error") {

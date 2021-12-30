@@ -11,7 +11,6 @@ namespace weaver {
             {}
 
         bool checkIndependenceRelation(Statement* s1, Statement* s2) const override;
-        bool checkHoareTripe(const string& pre, Statement* statement, const string& post) const override;
 
     private:
         string setInterpolationOptions() const override;

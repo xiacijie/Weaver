@@ -1,6 +1,7 @@
 #include "ParallelProgramVerifier.h"
 #include "SMTInterpol.h"
 #include "MathSAT.h"
+#include "Yices.h"
 #include "InterpolantAutomataBuilder.h"
 #include "../automata/ProofAutomata.h"
 
@@ -14,7 +15,9 @@ bool ParallelProgramVerifier::verify() {
     Program* program = _program;
     NFA* cfg = &program->getCFG();
 
-    TheoremProverBase* prover = new MathSAT(program);
+    MathSAT* mathSat = new MathSAT(program);
+    Yices* yices = new Yices(program);
+    SMTInterpol* smtInterpol = new SMTInterpol(program);
 
     if (PROOF_GROW_METHOD == 0) {
 
@@ -41,7 +44,7 @@ bool ParallelProgramVerifier::verify() {
                 cout << endl;
 
                 // This trace must be non-empty
-                Interpolants interpols = prover->generateInterpols(errorTrace);
+                Interpolants interpols = mathSat->generateInterpols(errorTrace);
 
                 if (interpols.empty()) {
                     cerr << "This Program is Incorrect!" << endl;
@@ -58,7 +61,7 @@ bool ParallelProgramVerifier::verify() {
                     cout << i << endl;
                 }
 
-                NFA* interpolAutomata = InterpolantAutomataBuilder::build(errorTrace, interpols, prover, program);
+                NFA* interpolAutomata = InterpolantAutomataBuilder::build(errorTrace, interpols, mathSat, program);
                 DFA* DInterpolAutomata = interpolAutomata->convertToDFA(program->getAlphabet());
                 delete interpolAutomata;
 
@@ -81,22 +84,27 @@ bool ParallelProgramVerifier::verify() {
             }
         }
 
-        delete prover;
+        delete yices;
+        delete smtInterpol;
+        delete mathSat;
         return correct;
     }
     else {
 
         // start with an empty proof automata
-        auto* proof = new ProofAutomata(program, prover);
+        auto* proof = new ProofAutomata(program, yices);
 
         int round = 1;
         while (true) {
             cout << "=========== Round: " << round++ << " ==============" << endl;
             cout << "Proof Size : " << proof->getNumStates() << endl;
 
+            cout << "Covert Proof to DFA..." << endl;
             DFA* DProof = proof->convertToDFA(program->getAlphabet());
+            cout << "Minimizing DProof..." << endl;
             DProof->minimize(program->getAlphabet());
 
+            cout << "Getting Error Trace..." << endl;
             auto errorTraceSet = proofCheck(cfg, DProof);
             delete DProof;
 
@@ -111,7 +119,7 @@ bool ParallelProgramVerifier::verify() {
                 cout << endl;
 
                 // This trace must be non-empty
-                Interpolants interpols = prover->generateInterpols(errorTrace);
+                Interpolants interpols = mathSat->generateInterpols(errorTrace);
 
                 if (interpols.empty()) {
                     cerr << "This Program is Incorrect!" << endl;
@@ -135,7 +143,9 @@ bool ParallelProgramVerifier::verify() {
             }
         }
 
-        delete prover;
+        delete yices;
+        delete smtInterpol;
+        delete mathSat;
         return correct;
     }
 

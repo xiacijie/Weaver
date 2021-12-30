@@ -122,6 +122,7 @@ namespace weaver {
 
         virtual string setEntailmentOptions() const;
         virtual string setCheckHoareTripeOptions() const;
+        virtual string setCheckIndependenceOptions() const;
 
         virtual string getSSAVarName(const string& varName, uint16_t i) const
         {return varName + SSA_DELIMITER + to_string(i); }

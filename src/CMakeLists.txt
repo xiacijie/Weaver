@@ -87,10 +87,10 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests 
+add_executable(tests
        test/test.cpp)
 
-target_link_libraries(tests PRIVATE 
+target_link_libraries(tests PRIVATE
         Catch2::Catch2WithMain
         utils
         automata

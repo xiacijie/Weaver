@@ -12,7 +12,6 @@ namespace weaver {
             {}
     private:
         string setInterpolationOptions() const override;
-        string setEntailmentOptions() const override;
 
         Interpolants processInterpolationResult(const string& result) const override;
 
