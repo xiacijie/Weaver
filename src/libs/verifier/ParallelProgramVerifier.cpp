@@ -5,126 +5,49 @@
 #include "InterpolantAutomataBuilder.h"
 #include "../automata/ProofAutomata.h"
 
-#define PROOF_GROW_METHOD 1
+#define COUNTER_EXAMPLE_SELECTION 0
 
 using namespace weaver;
 using namespace std;
 
 bool ParallelProgramVerifier::verify() {
+    cout << "Start verifying... " << endl;
     bool correct = false;
     Program* program = _program;
     NFA* cfg = &program->getCFG();
 
-    MathSAT* mathSat = new MathSAT(program);
-    Yices* yices = new Yices(program);
-    SMTInterpol* smtInterpol = new SMTInterpol(program);
+    // start with an empty proof automata
+    auto* proof = new ProofAutomata(program, _program->getYices());
 
-    if (PROOF_GROW_METHOD == 0) {
+    int round = 1;
+    while (true) {
+        cout << "=========== Round: " << round++ << " ==============" << endl;
+        cout << "Proof Size : " << proof->getNumStates() << endl;
 
-        // start with an empty proof
-        DFA* proof = new DFA();
-        proof->addState(0);
-        proof->setStartState(0);
-        proof->complete(1, program->getAlphabet());
+        cout << "Convert Proof to DFA..." << endl;
+        DFA* DProof = proof->convertToDFA(program->getAlphabet());
+        cout << "Minimizing DProof..." << endl;
+        DProof->minimize(program->getAlphabet());
 
-        int round = 1;
-        while (true) {
-            cout << "=========== Round: " << round++ << " ==============" << endl;
-            cout << "Proof DFA Size: "<< proof->getNumStates() << endl;
-            auto errorTraceSet = proofCheck(cfg, proof);
+        cout << "Getting Error Trace..." << endl;
+        auto errorTraceSet = proofCheck(cfg, DProof);
+        delete DProof;
 
-            if (!errorTraceSet.empty()) {
-                const Trace& errorTrace = *errorTraceSet.begin();
-
-                cout << "Get an error trace: " << endl;
-                for (const auto& t: errorTrace) {
+        if (!errorTraceSet.empty()) {
+            cout << "Get a set of error traces..." << endl;
+            if (COUNTER_EXAMPLE_SELECTION == 0) {
+                const auto& trace = *errorTraceSet.begin();
+                for (const auto& t: trace) {
                     cout << t->toString() << " || ";
                 }
-
                 cout << endl;
 
                 // This trace must be non-empty
-                Interpolants interpols = mathSat->generateInterpols(errorTrace);
-
+                Interpolants interpols = _program->getMathSAT()->generateInterpols(trace);
                 if (interpols.empty()) {
                     cerr << "This Program is Incorrect!" << endl;
                     cerr << "A valid counterexample trace:" << endl << endl;
-                    for (auto t : errorTrace) {
-                        cerr << t->toString() << endl;
-                    }
-
-                    break;
-                }
-
-                cout << "Interpolants: " << endl;
-                for (const auto& i : interpols) {
-                    cout << i << endl;
-                }
-
-                NFA* interpolAutomata = InterpolantAutomataBuilder::build(errorTrace, interpols, mathSat, program);
-                DFA* DInterpolAutomata = interpolAutomata->convertToDFA(program->getAlphabet());
-                delete interpolAutomata;
-
-                DInterpolAutomata->minimize(program->getAlphabet());
-
-                DFA* lastProofAutomata = proof;
-
-                proof = proof->Union(DInterpolAutomata, program->getAlphabet());
-                proof->minimize(program->getAlphabet());
-                delete DInterpolAutomata;
-                delete lastProofAutomata;
-            }
-            else {
-                cout << "***********************************************" << endl;
-                cout << "**   End: The program is verified correct!   **" << endl;
-                cout << "***********************************************" << endl;
-
-                correct = true;
-                break;
-            }
-        }
-
-        delete yices;
-        delete smtInterpol;
-        delete mathSat;
-        return correct;
-    }
-    else {
-
-        // start with an empty proof automata
-        auto* proof = new ProofAutomata(program, _program->getYices());
-
-        int round = 1;
-        while (true) {
-            cout << "=========== Round: " << round++ << " ==============" << endl;
-            cout << "Proof Size : " << proof->getNumStates() << endl;
-
-            cout << "Covert Proof to DFA..." << endl;
-            DFA* DProof = proof->convertToDFA(program->getAlphabet());
-            cout << "Minimizing DProof..." << endl;
-            DProof->minimize(program->getAlphabet());
-
-            cout << "Getting Error Trace..." << endl;
-            auto errorTraceSet = proofCheck(cfg, DProof);
-            delete DProof;
-
-            if (!errorTraceSet.empty()) {
-                const Trace& errorTrace = *errorTraceSet.begin();
-
-                cout << "Get an error trace: " << endl;
-                for (const auto& t: errorTrace) {
-                    cout << t->toString() << " || ";
-                }
-
-                cout << endl;
-
-                // This trace must be non-empty
-                Interpolants interpols = _program->getMathSAT()->generateInterpols(errorTrace);
-
-                if (interpols.empty()) {
-                    cerr << "This Program is Incorrect!" << endl;
-                    cerr << "A valid counterexample trace:" << endl << endl;
-                    for (auto t : errorTrace) {
+                    for (auto t : trace) {
                         cerr << t->toString() << endl;
                     }
 
@@ -132,28 +55,64 @@ bool ParallelProgramVerifier::verify() {
                 }
 
                 cout << "Interpolants: ";
-                for (const auto& i: interpols) {
-                    cout << i << endl;
+                for (const auto& intpl: interpols) {
+                    cout << intpl << endl;
                 }
+                cout << endl;
 
                 proof->extend(interpols, program->getAlphabet());
             }
-            else {
-                cout << "***********************************************" << endl;
-                cout << "**   End: The program is verified correct!   **" << endl;
-                cout << "***********************************************" << endl;
+            else  {
+                bool anyIncorrectTrace = false;
+                int i = 1;
+                for (const auto& trace : errorTraceSet) {
+                    cout << i++ << ". ";
+                    for (const auto& t: trace) {
+                        cout << t->toString() << " || ";
+                    }
+                    cout << endl;
 
-                correct = true;
-                break;
+                    // This trace must be non-empty
+                    Interpolants interpols = _program->getMathSAT()->generateInterpols(trace);
+                    if (interpols.empty()) {
+                        cerr << "This Program is Incorrect!" << endl;
+                        cerr << "A valid counterexample trace:" << endl << endl;
+                        for (auto t : trace) {
+                            cerr << t->toString() << endl;
+                        }
+
+                        anyIncorrectTrace = true;
+                        break;
+                    }
+
+                    cout << "Interpolants: ";
+                    for (const auto& intpl: interpols) {
+                        cout << intpl << endl;
+                    }
+                    cout << endl;
+
+                    proof->extend(interpols, program->getAlphabet());
+                }
+
+                if (anyIncorrectTrace) {
+                    break;
+                }
             }
-        }
 
-        delete yices;
-        delete smtInterpol;
-        delete mathSat;
-        return correct;
+
+        }
+        else {
+            cout << "***********************************************" << endl;
+            cout << "**   End: The program is verified correct!   **" << endl;
+            cout << "***********************************************" << endl;
+
+            correct = true;
+            break;
+        }
     }
 
+    delete proof;
+    return correct;
 }
 
 
@@ -206,7 +165,6 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
             if (!cfg->hasTransitionFrom(s1)) {
                 continue;
             }
-
 
             for (const auto& sleepSet: sleepSetSets) {
                 for (const auto& s2: proof->getStates()) {
@@ -366,9 +324,59 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
     return counterExamples;
 }
 
-//set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proof) {
-//
-//}
+set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proof) {
+    typedef tuple<uint32_t, bool, uint32_t> T;
+
+    // maps (q_p, B, q_pi) to a set of set of statements
+    map<T, set<set<Statement*>>> X;
+
+    // the possible alphabet of sleep set
+    set<Statement*> possibleStatementsInSleepSet;
+    const auto& independenceRelation = _program->getIndependenceRelation();
+
+    for (const auto& it: independenceRelation) {
+        possibleStatementsInSleepSet.insert(it.second.begin(), it.second.end());
+    }
+
+
+    // orderings
+    vector<const unordered_set<Statement*>*> R;
+    R.reserve(_program->getTotalNumThreads());
+    for (int i = 1; i < _program->getTotalNumThreads(); i ++) {
+        R.push_back(&_program->getStatementsByThread(i));
+    }
+
+    //initial inactive states
+    for (const auto& s1: cfg->getAcceptStates()) {
+        for (const auto& s2: proof->getStates()) {
+            if (!proof->isAcceptState(s2)) {
+                T t(s1, false, s2);
+                X[t].insert(possibleStatementsInSleepSet);
+            }
+        }
+    }
+
+    for (const auto& s1: cfg->getStates()) {
+        if (!cfg->hasTransitionFrom(s1)) {
+            continue;
+        }
+
+        for (const auto& s2: proof->getStates()) {
+
+            set<set<Statement*>> X_meet;
+            X_meet.insert(possibleStatementsInSleepSet);
+
+            sort(R.begin(), R.end());
+            do {
+                set<set<Statement*>> X_join;
+            }
+            while (next_permutation(R.begin(), R.end()));
+        }
+    }
+
+    return {};
+}
+
 //
 //set<set<Statement*>> ParallelProgramVerifier::X(uint32_t q_cfg, uint32_t q_pi) {
 //

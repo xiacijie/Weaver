@@ -2,14 +2,18 @@ int x1,x2;
 
 assume(x1 == x2 && x1 >=0 );
 
-
+parallel(2)
+{
     while (x1 < 10000) {
         x1++;
     }
-
+}
+{
     while (x2 < 10000) {
         x2++;
     }
+}
 
 
 assert( x1 == x2);
+

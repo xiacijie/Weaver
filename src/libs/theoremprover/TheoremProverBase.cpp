@@ -300,8 +300,16 @@ bool TheoremProverBase::checkHoareTripe(const string &pre, Statement *statement,
 
     SMTFile << getAssert(preCondition) << endl;
 
+    string formula;
+
     // get the SMT formula for the statement
-    string formula = getFormula(statement->getNode(), statement, table);
+    if (statement == nullptr) {
+        formula = getTrue();
+    }
+    else {
+         formula = getFormula(statement->getNode(), statement, table);
+    }
+
 
     while(!table.isNotInitializedVarQueueEmpty()) {
         auto decl = table.popNotInitializedVar();

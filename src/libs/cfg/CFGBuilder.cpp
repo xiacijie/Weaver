@@ -25,8 +25,8 @@ uint32_t CFGBuilder::build() {
 void CFGBuilder::addTransition(uint32_t fromState, Statement *statement, uint32_t toState) {
     _cfg->addTransition(fromState, statement, toState);
 
-    if (statement)
-        _alphabet.insert(statement);
+
+    _alphabet.insert(statement);
 }
 
 
