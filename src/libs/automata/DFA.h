@@ -2,7 +2,7 @@
 #include "FiniteAutomataBase.h"
 #include <map>
 #include <unordered_map>
-#include "../util/util.h"
+#include "String.h"
 
 
 using namespace std;

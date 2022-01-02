@@ -50,6 +50,7 @@ include_directories(${PROJECT_SOURCE_DIR}/libs/theoremprover)
 include_directories(${PROJECT_SOURCE_DIR}/libs/verifier)
 include_directories(${PROJECT_SOURCE_DIR}/libs/util)
 include_directories(${PROJECT_SOURCE_DIR}/libs/config)
+include_directories(${PROJECT_SOURCE_DIR}/libs/global)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/libs/ast)
 add_subdirectory(${PROJECT_SOURCE_DIR}/libs/automata)
@@ -95,7 +96,7 @@ add_executable(tests
 
 target_link_libraries(tests PRIVATE
         Catch2::Catch2WithMain
-        utils
+        util
         automata
         program
         ast

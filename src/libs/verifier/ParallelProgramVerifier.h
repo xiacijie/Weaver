@@ -2,6 +2,8 @@
 #include "../program/Program.h"
 #include "../theoremprover/TheoremProverBase.h"
 #include <functional>
+#include "Set.h"
+#include "AntiChain.h"
 
 namespace weaver {
     class ParallelProgramVerifier {
@@ -24,8 +26,6 @@ namespace weaver {
         set<Trace> proofCheck(NFA* cfg, DFA* proof);
 
         set<Trace> proofCheckWithAntiChains(NFA* cfg, DFA* proof);
-        set<set<Statement*>> X(uint32_t q_cfg, uint32_t q_pi);
-        set<set<Statement*>> FMax(function<set<set<Statement*>>(uint32_t , uint32_t)> F, uint32_t q_cfg, uint32_t q_pi, NFA* cfg, DFA* proof);
 
         set<Trace> getCounterExamples(map<IntersectionState, map<Statement*, IntersectionState>>& inactivityProof, IntersectionState& initialState);
         void alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it,

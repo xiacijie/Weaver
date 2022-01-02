@@ -8,20 +8,21 @@
 #include "WeaverParser.h"
 #include "ASTBuilder.h"
 #include "CFGBuilder.h"
-#include "util.h"
-#include "log.h"
+#include "String.h"
+#include "Log.h"
 
 using namespace weaver;
 using namespace std;
 using namespace antlr4;
 using namespace antlrcpp;
 
-extern logg::Logger logger;
+extern Logger logger;
+extern MathSAT mathSat;
 
 void Program::init(string fileName) {
 
     if (!(fileName.substr(fileName.find_last_of(".") + 1) == "wvr")) {
-        logger.error("Currently only '.wvr' files are supported."); 
+        logger.error("Currently only '.wvr' files are supported.");
         exit(1); 
     } 
 

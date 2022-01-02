@@ -1,12 +1,13 @@
-#include <string> 
-#include "log.h"
+#pragma once
+#include <string>
+#include "Log.h"
 
 using namespace std; 
-using namespace logg; 
+using namespace util;
 
-namespace conf {
+namespace weaver {
 
-    const string helpMessage = "Usage: ./weaver -f <filename> " 
+    const string helpMessage = "Usage: ./weaver -f <filename> "
         "-v <parallel/sequential> "
         "-l <none/error/warn/info/debug/verbose>";
 
@@ -30,5 +31,4 @@ namespace conf {
             void setDefaults(); 
 
     };
-
 }

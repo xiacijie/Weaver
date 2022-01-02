@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -15,6 +16,4 @@ namespace util {
     string join(const vector<uint32_t>& v, const string& delimiter);
     string join(const vector<string>& v, const string& delimiter);
     vector<string> tokenize(const string& str, char delimiter);
-
-
 }

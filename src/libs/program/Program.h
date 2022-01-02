@@ -107,8 +107,6 @@ namespace weaver {
         SMTInterpol _SMTInterpol;
         Yices _Yices;
         MathSAT _MathSAT;
-
-
     };
 
 }

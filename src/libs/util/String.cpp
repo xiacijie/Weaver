@@ -1,9 +1,6 @@
-#include "util.h"
+#include "String.h"
 
 using namespace std;
-using namespace util;
-
-
 
 string util::join(pair<uint32_t, uint32_t> p, const string& delimiter) {
     stringstream ss;

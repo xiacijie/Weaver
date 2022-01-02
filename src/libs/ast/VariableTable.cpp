@@ -2,12 +2,9 @@
 #include <algorithm>
 #include <sstream>
 #include "VariableTable.h"
-#include "log.h"
 
 using namespace std;
 using namespace weaver;
-
-extern logg::Logger logger;
 
 void VariableTable::initializeVar(const string &varName) {
     _varInitializationTable[varName] = true;

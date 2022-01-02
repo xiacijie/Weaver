@@ -2,7 +2,7 @@
 
 #include "TheoremProverBase.h"
 #include "../ast/VariableTable.h"
-#include "../util/util.h"
+#include "String.h"
 
 using namespace util;
 

@@ -9,6 +9,7 @@
 
 using namespace weaver;
 using namespace std;
+using namespace util;
 
 bool ParallelProgramVerifier::verify() {
     cout << "Start verifying... " << endl;
@@ -369,6 +370,71 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
             sort(R.begin(), R.end());
             do {
                 set<set<Statement*>> X_join;
+
+                for (const auto& t: cfg->getTransitions(s1)) {
+                    Statement* statement = t.first;
+                    const auto& targetStates = t.second;
+
+                    for (const auto& targetState: targetStates) {
+                        uint32_t s1_next;
+                        uint32_t s2_next;
+                        if (statement == nullptr) {
+                            s1_next = targetState;
+                            s2_next = s2;
+                        }
+                        else {
+                            s1_next = targetState;
+                            s2_next = proof->getTargetState(s2, statement);
+                        }
+
+                        T next_t(s1_next, false, s2_next);
+
+                        if (X.find(next_t) != X.end()) {
+                            for (const auto& S : X[next_t]) {
+                                if (statement == nullptr) {
+                                    set<set<Statement*>> temp;
+//                                    antiChainJoin(X_join, {S}, temp);
+                                    X_join.clear();
+                                    X_join.insert(temp.begin(), temp.end());
+                                }
+                                else {
+                                    set<Statement*> R_a;
+                                    for (const auto & set : R) {
+                                        if (set->find(statement) != set->end()) {
+                                            break;
+                                        }
+                                        else {
+                                            R_a.insert(set->begin(), set->end());
+                                        }
+                                    }
+
+                                    const auto& D_a_u = _program->getDependentStatements(statement);
+                                    set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
+                                    set<Statement*> R_a_minus_D_a;
+                                    setDifference(R_a, D_a, R_a_minus_D_a);
+                                    bool include = setInclusion(R_a_minus_D_a, S);
+
+                                    if (include) {
+                                        set<Statement*> S_union_D_a;
+                                        setUnion(S, D_a, S_union_D_a);
+                                        set<Statement*> S_union_D_a_minus_a;
+                                        setDifference(S_union_D_a, {statement}, S_union_D_a_minus_a);
+                                        set<set<Statement*>> temp;
+//                                        antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
+                                        X_join.clear();
+                                        X_join.insert(temp.begin(), temp.end());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                set<set<Statement*>> temp;
+//                antiChainMeet(X_meet, X_join, temp);
+                X_meet.clear();
+                X_meet.insert(temp.begin(), temp.end());
+
             }
             while (next_permutation(R.begin(), R.end()));
         }
@@ -377,48 +443,6 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
     return {};
 }
 
-//
-//set<set<Statement*>> ParallelProgramVerifier::X(uint32_t q_cfg, uint32_t q_pi) {
-//
-//    return {};
-//}
-//
-//set<set<Statement*>> ParallelProgramVerifier::FMax(function<set<set<Statement *>>(uint32_t, uint32_t)> F,
-//                                                   uint32_t q_cfg, uint32_t q_pi, NFA* cfg, DFA* proof) {
-//
-//    if (cfg->isAcceptState(q_cfg) && !proof->isAcceptState(q_pi)) {
-//        set<set<Statement*>> result;
-//        result.insert(_program->getAlphabet().begin(), _program->getAlphabet().end());
-//        return result;
-//    }
-//
-//    set<set<Statement*>> X_n;
-//    X_n.insert(_program->getAlphabet().begin(), _program->getAlphabet().end());
-//
-//    vector<const unordered_set<Statement*>*> R;
-//    R.reserve(_program->getTotalNumThreads());
-//    for (int i = 1; i < _program->getTotalNumThreads(); i ++) {
-//        R.push_back(&_program->getStatementsByThread(i));
-//    }
-//
-//    sort(R.begin(), R.end());
-//    do {
-//        set<set<Statement*>> X_u;
-//
-//        if (cfg->hasTransitionFrom(q_cfg)) {
-//            for (const auto& t : cfg->getTransitions(q_cfg)) {
-//                Statement* stmt = t.first;
-//                const auto& targetStates = t.second;
-//
-//                for (const auto& targetState: targetStates) {
-//
-//                }
-//            }
-//        }
-//    }
-//    while (next_permutation(R.begin(), R.end()));
-//
-//}
 void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it, const Alphabet &alphabet,
                                                            set<Statement *> tempSet, set<set<Statement*>> &powerSetSet) {
     powerSetSet.insert(tempSet);
