@@ -357,88 +357,96 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
         }
     }
 
-    for (const auto& s1: cfg->getStates()) {
-        if (!cfg->hasTransitionFrom(s1)) {
-            continue;
-        }
+    bool fixed = false;
 
-        for (const auto& s2: proof->getStates()) {
+    while (!fixed) {
+        fixed = true;
+        
+        for (const auto& s1: cfg->getStates()) {
+            if (!cfg->hasTransitionFrom(s1)) {
+                continue;
+            }
 
-            set<set<Statement*>> X_meet;
-            X_meet.insert(possibleStatementsInSleepSet);
+            for (const auto& s2: proof->getStates()) {
 
-            sort(R.begin(), R.end());
-            do {
-                set<set<Statement*>> X_join;
+                set<set<Statement*>> X_meet;
+                X_meet.insert(possibleStatementsInSleepSet);
 
-                for (const auto& t: cfg->getTransitions(s1)) {
-                    Statement* statement = t.first;
-                    const auto& targetStates = t.second;
+                sort(R.begin(), R.end());
+                do {
+                    set<set<Statement*>> X_join;
 
-                    for (const auto& targetState: targetStates) {
-                        uint32_t s1_next;
-                        uint32_t s2_next;
-                        if (statement == nullptr) {
-                            s1_next = targetState;
-                            s2_next = s2;
-                        }
-                        else {
-                            s1_next = targetState;
-                            s2_next = proof->getTargetState(s2, statement);
-                        }
+                    for (const auto& t: cfg->getTransitions(s1)) {
+                        Statement* statement = t.first;
+                        const auto& targetStates = t.second;
 
-                        T next_t(s1_next, false, s2_next);
+                        for (const auto& targetState: targetStates) {
+                            uint32_t s1_next;
+                            uint32_t s2_next;
+                            if (statement == nullptr) {
+                                s1_next = targetState;
+                                s2_next = s2;
+                            }
+                            else {
+                                s1_next = targetState;
+                                s2_next = proof->getTargetState(s2, statement);
+                            }
 
-                        if (X.find(next_t) != X.end()) {
-                            for (const auto& S : X[next_t]) {
-                                if (statement == nullptr) {
-                                    set<set<Statement*>> temp;
-//                                    antiChainJoin(X_join, {S}, temp);
-                                    X_join.clear();
-                                    X_join.insert(temp.begin(), temp.end());
-                                }
-                                else {
-                                    set<Statement*> R_a;
-                                    for (const auto & set : R) {
-                                        if (set->find(statement) != set->end()) {
-                                            break;
-                                        }
-                                        else {
-                                            R_a.insert(set->begin(), set->end());
-                                        }
-                                    }
+                            T next_t(s1_next, false, s2_next);
 
-                                    const auto& D_a_u = _program->getDependentStatements(statement);
-                                    set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
-                                    set<Statement*> R_a_minus_D_a;
-                                    setDifference(R_a, D_a, R_a_minus_D_a);
-                                    bool include = setInclusion(R_a_minus_D_a, S);
-
-                                    if (include) {
-                                        set<Statement*> S_union_D_a;
-                                        setUnion(S, D_a, S_union_D_a);
-                                        set<Statement*> S_union_D_a_minus_a;
-                                        setDifference(S_union_D_a, {statement}, S_union_D_a_minus_a);
+                            if (X.find(next_t) != X.end()) {
+                                for (const auto& S : X[next_t]) {
+                                    if (statement == nullptr) {
                                         set<set<Statement*>> temp;
-//                                        antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
+                                        antiChainJoin(X_join, {S}, temp);
                                         X_join.clear();
                                         X_join.insert(temp.begin(), temp.end());
+                                    }
+                                    else {
+                                        set<Statement*> R_a;
+                                        for (const auto & set : R) {
+                                            if (set->find(statement) != set->end()) {
+                                                break;
+                                            }
+                                            else {
+                                                R_a.insert(set->begin(), set->end());
+                                            }
+                                        }
+
+                                        const auto& D_a_u = _program->getDependentStatements(statement);
+                                        set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
+                                        set<Statement*> R_a_minus_D_a;
+                                        setDifference(R_a, D_a, R_a_minus_D_a);
+                                        bool include = setInclusion(R_a_minus_D_a, S);
+
+                                        if (include) {
+                                            set<Statement*> S_union_D_a;
+                                            setUnion(S, D_a, S_union_D_a);
+                                            set<Statement*> S_union_D_a_minus_a;
+                                            setDifference(S_union_D_a, {statement}, S_union_D_a_minus_a);
+                                            set<set<Statement*>> temp;
+                                            antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
+                                            X_join.clear();
+                                            X_join.insert(temp.begin(), temp.end());
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+
+                    set<set<Statement*>> temp;
+                    antiChainMeet(X_meet, X_join, temp);
+                    X_meet.clear();
+                    X_meet.insert(temp.begin(), temp.end());
+
                 }
-
-                set<set<Statement*>> temp;
-//                antiChainMeet(X_meet, X_join, temp);
-                X_meet.clear();
-                X_meet.insert(temp.begin(), temp.end());
-
+                while (next_permutation(R.begin(), R.end()));
             }
-            while (next_permutation(R.begin(), R.end()));
         }
     }
+
+
 
     return {};
 }
