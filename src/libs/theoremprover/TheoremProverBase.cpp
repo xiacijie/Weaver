@@ -194,7 +194,6 @@ bool TheoremProverBase::checkIndependenceRelation(Statement *s1, Statement *s2) 
         }
     }
 
-
     string conjunctEQ;
     for (const auto& it : largestVarNumber1) {
         string varName = it.first;

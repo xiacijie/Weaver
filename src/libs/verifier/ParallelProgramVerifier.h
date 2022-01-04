@@ -19,15 +19,24 @@ namespace weaver {
          */
         bool verify();
 
+
+
     private:
         typedef tuple<uint32_t, bool, set<Statement*>> LTAState;
         typedef pair<LTAState, uint32_t> IntersectionState;
+        typedef tuple<uint32_t, bool, uint32_t> T;
 
         set<Trace> proofCheck(NFA* cfg, DFA* proof);
+        set<Trace> getCounterExamples(const map<IntersectionState, map<Statement*, IntersectionState>>& inactivityProof,
+                                      IntersectionState& initialState);
 
         set<Trace> proofCheckWithAntiChains(NFA* cfg, DFA* proof);
+        void addToInactivityProof(map<T, map<set<Statement*>, map<Statement*, T>>>& inactivityProof,
+                                  T& fromState, const set<Statement*>& S, Statement* statement, T& toState);
 
-        set<Trace> getCounterExamples(map<IntersectionState, map<Statement*, IntersectionState>>& inactivityProof, IntersectionState& initialState);
+        set<Trace> getCounterExamples(const  map<T, map<set<Statement*>, map<Statement*, T>>>& inactivityProof,
+                                      T& initialState);
+
         void alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it,
                                                 const Alphabet &alphabet,
                                                 set<Statement*> tempSet,

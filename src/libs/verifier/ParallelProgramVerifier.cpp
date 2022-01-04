@@ -18,7 +18,7 @@ bool ParallelProgramVerifier::verify() {
     NFA* cfg = &program->getCFG();
 
     // start with an empty proof automata
-    auto* proof = new ProofAutomata(program, _program->getYices());
+    auto* proof = new ProofAutomata(program, program->getYices());
 
     int round = 1;
     while (true) {
@@ -31,7 +31,7 @@ bool ParallelProgramVerifier::verify() {
         DProof->minimize(program->getAlphabet());
 
         cout << "Getting Error Trace..." << endl;
-        auto errorTraceSet = proofCheck(cfg, DProof);
+        auto errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
         delete DProof;
 
         if (!errorTraceSet.empty()) {
@@ -285,7 +285,7 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
 }
 
 set<Trace> ParallelProgramVerifier::getCounterExamples(
-        map <IntersectionState, map<Statement *, IntersectionState>> &inactivityProof,
+        const map <IntersectionState, map<Statement *, IntersectionState>> &inactivityProof,
         IntersectionState& initialState) {
 
     set<Trace> counterExamples;
@@ -326,7 +326,6 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
 }
 
 set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proof) {
-    typedef tuple<uint32_t, bool, uint32_t> T;
 
     // maps (q_p, B, q_pi) to a set of set of statements
     map<T, set<set<Statement*>>> X;
@@ -338,7 +337,6 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
     for (const auto& it: independenceRelation) {
         possibleStatementsInSleepSet.insert(it.second.begin(), it.second.end());
     }
-
 
     // orderings
     vector<const unordered_set<Statement*>*> R;
@@ -357,9 +355,18 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
         }
     }
 
+    //inactivity proof
+    map<T, map<set<Statement*>, map<Statement*, T>>> inactivityProof;
+
     bool fixed = false;
 
     while (!fixed) {
+        int numStates = 0;
+        for (const auto&x : X) {
+            numStates += x.second.size();
+        }
+
+        cout << "States: " << numStates << endl;
         fixed = true;
         
         for (const auto& s1: cfg->getStates()) {
@@ -369,6 +376,7 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
 
             for (const auto& s2: proof->getStates()) {
 
+                T t(s1, false, s2);
                 set<set<Statement*>> X_meet;
                 X_meet.insert(possibleStatementsInSleepSet);
 
@@ -376,9 +384,9 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
                 do {
                     set<set<Statement*>> X_join;
 
-                    for (const auto& t: cfg->getTransitions(s1)) {
-                        Statement* statement = t.first;
-                        const auto& targetStates = t.second;
+                    for (const auto& transit: cfg->getTransitions(s1)) {
+                        Statement* statement = transit.first;
+                        const auto& targetStates = transit.second;
 
                         for (const auto& targetState: targetStates) {
                             uint32_t s1_next;
@@ -394,13 +402,17 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
 
                             T next_t(s1_next, false, s2_next);
 
+                            // transit into an inactive state
                             if (X.find(next_t) != X.end()) {
                                 for (const auto& S : X[next_t]) {
+
                                     if (statement == nullptr) {
                                         set<set<Statement*>> temp;
                                         antiChainJoin(X_join, {S}, temp);
                                         X_join.clear();
                                         X_join.insert(temp.begin(), temp.end());
+
+                                        addToInactivityProof(inactivityProof, t, S, statement, next_t);
                                     }
                                     else {
                                         set<Statement*> R_a;
@@ -428,8 +440,12 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
                                             antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
                                             X_join.clear();
                                             X_join.insert(temp.begin(), temp.end());
+
+                                            addToInactivityProof(inactivityProof, t, S_union_D_a_minus_a, statement, next_t);
                                         }
                                     }
+
+
                                 }
                             }
                         }
@@ -442,6 +458,35 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
 
                 }
                 while (next_permutation(R.begin(), R.end()));
+
+                // check if current state is inactive
+                // if inactive
+                if (!X_meet.empty()) {
+
+                    // check start state
+                    if (s1 == cfg->getStartState() && s2 == proof->getStartState()) {
+                        T initState(s1,false,s2);
+                        return getCounterExamples(inactivityProof, initState);
+                    }
+
+                    // update inactive states
+                    if (X.find(t) == X.end()) {
+                        X[t] = X_meet;
+                        fixed = false;
+                    }
+                    else {
+                        if (X[t] != X_meet) {
+                            X[t] = X_meet;
+                            fixed = false;
+                        }
+                    }
+                }
+                else { // not inactive
+                    const auto& it = inactivityProof.find(t);
+                    if (it != inactivityProof.end()) {
+                        inactivityProof.erase(t);
+                    }
+                }
             }
         }
     }
@@ -449,6 +494,81 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
 
 
     return {};
+}
+
+void ParallelProgramVerifier::addToInactivityProof(map<T, map<set<Statement *>, map<Statement *, T>>> &inactivityProof,
+                                                   T &fromState, const set<Statement *> &S, Statement *statement,
+                                                   T &toState) {
+    const auto& it = inactivityProof.find(fromState);
+    if (it != inactivityProof.end()) {
+        bool isSubsumedByAny = false;
+        vector<set<Statement*>> toRemove;
+        for (const auto& it1 : it->second) {
+            const set<Statement*>& s = it1.first;
+            if (setInclusion(S, s)) {
+                isSubsumedByAny = true;
+                break;
+            }
+
+            if (setInclusion(s, S)) {
+                toRemove.push_back(s);
+            }
+        }
+
+        if (!toRemove.empty()) {
+            for (const auto& r : toRemove) {
+                it->second.erase(r);
+            }
+        }
+
+        if (!isSubsumedByAny) {
+            inactivityProof[fromState][S][statement] = toState;
+        }
+    }
+    else {
+        inactivityProof[fromState][S][statement] = toState;
+    }
+}
+
+set<Trace> ParallelProgramVerifier::getCounterExamples(
+        const map<T, map<set<Statement *>, map<Statement *, T>>> &inactivityProof, T &initialState) {
+
+    set<Trace> counterExamples;
+    queue<pair<T, Trace>> q;
+
+    q.push(make_pair(initialState, Trace({})));
+
+    while (!q.empty()) {
+        auto current = q.front();
+        q.pop();
+
+        const auto& currentState = current.first;
+        const auto& currentTrace = current.second;
+
+        const auto& it = inactivityProof.find(currentState);
+        if (it != inactivityProof.end()) {
+            Trace nextTrace(currentTrace.begin(), currentTrace.end());
+
+            for (const auto& tm : it->second) {
+                for (const auto& t : tm.second) {
+                    Statement* stmt = t.first;
+                    const T& nextState = t.second;
+                    if (stmt != nullptr)
+                        nextTrace.push_back(stmt);
+
+                    q.push(make_pair(nextState, nextTrace));
+
+                    if (stmt != nullptr)
+                        nextTrace.pop_back();
+                }
+            }
+        }
+        else { // leaf node
+            counterExamples.insert(currentTrace);
+        }
+    }
+
+    return counterExamples;
 }
 
 void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it, const Alphabet &alphabet,

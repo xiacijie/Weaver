@@ -181,7 +181,6 @@ Statement* Program::getEquivalentStatement(Statement *stmt) {
     return nullptr;
 }
 
-
 void Program::addDependentStatements(Statement *first, Statement *second) {
     // note that dependence relation is symmetric and reflexive
     _dependenceRelation[first].insert(first);

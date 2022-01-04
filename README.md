@@ -1,10 +1,14 @@
 # Weaver
 Automated Hypersafety Verification in C++
 
+This project uses SMTInterpol, MathSAT and Yices as the SMT solvers. 
+
+SMTInterpol and MathSAT have already been provided as binary files. Only Yices needs to be installed manually.
 ## Environment Requirements:
 1. Java 11
 2. C++ 14
 3. CMake >= 3.7
+4. Yices SMT solver 
 
 ## Build Instructions:
 1. Clone this project.

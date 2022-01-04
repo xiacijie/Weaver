@@ -4,8 +4,6 @@
 using namespace std;
 
 namespace util {
-
-
     template< typename T>
     void antiChainMax(const set<set<T>>& s, set<set<T>>& result) {
         assert(result.empty() && "result is not empty!");
