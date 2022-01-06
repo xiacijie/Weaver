@@ -18,11 +18,21 @@ namespace weaver {
         bool hasTransitionFrom(uint32_t state) override;
         bool hasTransitionTo(uint32_t state) override;
         bool hasTransition(uint32_t fromState, Statement* statement) override;
+        bool hasTransition(uint32_t fromState, Statement* statement, uint32_t toState) override;
         string toString();
 
         const unordered_set<uint32_t>& getTargetStates(uint32_t state, Statement* statement);
         void removeUnreachableStates() override;
+
+        // covert NFA to DFA using subset constructions.
         DFA* convertToDFA(Alphabet& alphabet);
+
+        // convert the NFA with epsilon transitions to NFA without epsilon transitions
+        NFA* NFAEpsilonToNFA(Alphabet& alphabet);
+
+        // convert the NFA without epsilon transitions to DFA
+        DFA* NFAToDFA(Alphabet& alphabet);
+
         NFA* shuffle(NFA* other, Alphabet& alphabet);
 
         void concatenate(uint32_t linkState, NFA* other);

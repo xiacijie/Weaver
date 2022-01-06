@@ -4,6 +4,7 @@
 #include "../theoremprover/Yices.h"
 #include "InterpolantAutomataBuilder.h"
 #include "../automata/ProofAutomata.h"
+#include <chrono>
 
 #define COUNTER_EXAMPLE_SELECTION 0
 
@@ -11,27 +12,38 @@ using namespace weaver;
 using namespace std;
 using namespace util;
 
+
+using clo = std::chrono::system_clock;
+using sec = std::chrono::duration<double>;
+
 bool ParallelProgramVerifier::verify() {
     cout << "Start verifying... " << endl;
     bool correct = false;
     Program* program = _program;
-    NFA* cfg = &program->getCFG();
+    NFA* cfg = program->getCFG().NFAEpsilonToNFA(program->getAlphabet());
 
     // start with an empty proof automata
     auto* proof = new ProofAutomata(program, program->getYices());
 
     int round = 1;
+    double proofCheckingTime = 0;
+
     while (true) {
         cout << "=========== Round: " << round++ << " ==============" << endl;
         cout << "Proof Size : " << proof->getNumStates() << endl;
 
         cout << "Convert Proof to DFA..." << endl;
-        DFA* DProof = proof->convertToDFA(program->getAlphabet());
-        cout << "Minimizing DProof..." << endl;
-        DProof->minimize(program->getAlphabet());
+        DFA* DProof = proof->NFAToDFA(program->getAlphabet());
 
         cout << "Getting Error Trace..." << endl;
+        const auto before = clo::now();
         auto errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
+        const sec duration = clo::now() - before;
+
+        cout << duration.count() << endl;
+
+        proofCheckingTime += duration.count();
+
         delete DProof;
 
         if (!errorTraceSet.empty()) {
@@ -103,6 +115,7 @@ bool ParallelProgramVerifier::verify() {
 
         }
         else {
+            cout << "Proof Checking Time: " << proofCheckingTime << "s" << endl;
             cout << "***********************************************" << endl;
             cout << "**   End: The program is verified correct!   **" << endl;
             cout << "***********************************************" << endl;
@@ -113,6 +126,7 @@ bool ParallelProgramVerifier::verify() {
     }
 
     delete proof;
+    delete cfg;
     return correct;
 }
 
@@ -602,3 +616,10 @@ void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(set<Statement *>:
         tempSet.erase(it1);
     }
 }
+
+
+
+
+
+
+

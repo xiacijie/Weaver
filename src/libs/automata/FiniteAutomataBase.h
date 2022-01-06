@@ -44,6 +44,7 @@ namespace weaver {
         virtual bool hasTransitionTo(uint32_t state)=0;
 
         virtual bool hasTransition(uint32_t fromState, Statement* statement)=0;
+        virtual bool hasTransition(uint32_t fromState, Statement* statement, uint32_t toState)=0;
 
         const unordered_set<uint32_t>& getAcceptStates() const { return _acceptStates; }
         const unordered_set<uint32_t>& getStates() const { return _states; }

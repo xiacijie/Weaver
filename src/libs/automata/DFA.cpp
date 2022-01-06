@@ -217,8 +217,6 @@ void DFA::minimize(Alphabet& alphabet) {
         }
     }
 
-
-
     if (newStartStateSet == false) {
         assert(false && "Start state not set!\n");
     }
@@ -454,6 +452,14 @@ bool DFA::hasTransition(uint32_t fromState, Statement *statement) {
     }
 
     return _transitionTable[fromState].find(statement) != _transitionTable[fromState].end();
+}
+
+bool DFA::hasTransition(uint32_t fromState, Statement *statement, uint32_t toState) {
+    if (!hasTransition(fromState, statement)) {
+        return false;
+    }
+
+    return _transitionTable[fromState][statement] == toState;
 }
 
 bool DFA::hasTransitionFrom(uint32_t state) {

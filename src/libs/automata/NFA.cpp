@@ -4,9 +4,11 @@
 #include <queue>
 #include <cassert>
 #include "../ast/ASTNode.h"
+#include "Set.h"
 
 using namespace std;
 using namespace weaver;
+using namespace util;
 
 unordered_map<Statement*, unordered_set<uint32_t>>& NFA::getTransitions(uint32_t fromState) {
     assert(hasTransitionFrom(fromState) && "Error");
@@ -147,9 +149,147 @@ void NFA::removeUnreachableStates() {
     }
 }
 
-DFA* NFA::convertToDFA(Alphabet& alphabet) {
-    removeUnreachableStates();
+NFA* NFA::NFAEpsilonToNFA(Alphabet &alphabet) {
+    NFA* automata = new NFA();
+    automata->addState(getStartState());
+    automata->setStartState(getStartState());
+    set<tuple<uint32_t, Statement*, uint32_t>> tempTransitions;
 
+    if (isAcceptState(getStartState())) {
+        automata->setAcceptState(getStartState());
+    }
+
+    queue<tuple<uint32_t, Statement*, uint32_t>> workList;
+    if (hasTransitionFrom(getStartState())) {
+        for (const auto& transition: getTransitions(getStartState())) {
+            Statement* statement = transition.first;
+            for (const auto& targetState: transition.second) {
+                workList.push({getStartState(), statement, targetState});
+            }
+        }
+    }
+
+    while (!workList.empty()) {
+        auto t = workList.front();
+        workList.pop();
+
+        uint32_t q1 = get<0>(t);
+        Statement* statement = get<1>(t);
+        uint32_t q2 = get<2>(t);
+
+        if (statement != nullptr) {
+            if (!automata->hasState(q2)) {
+                automata->addState(q2);
+            }
+
+            automata->addTransition(q1, statement, q2);
+            if (isAcceptState(q2)) {
+                automata->setAcceptState(q2);
+            }
+
+            if (hasTransition(q2, nullptr)) {
+                for (const auto& q3: getTargetStates(q2, nullptr)) {
+                    if (!automata->hasTransition(q1, statement, q3)) {
+                        workList.push({q1, statement, q3});
+                    }
+                }
+            }
+
+            for (const auto& a: alphabet) {
+                if (hasTransition(q2, a)) {
+                    for (const auto& q3 : getTargetStates(q2, a)) {
+                        if (!automata->hasTransition(q2, a, q3)) {
+                            workList.push({q2, a ,q3});
+                        }
+                    }
+                }
+            }
+        }
+        else { // epsilon transition
+            tempTransitions.insert(t);
+            if (isAcceptState(q2)) {
+                automata->setAcceptState(q1);
+            }
+
+            Alphabet alphabetWithEpsilon;
+            alphabetWithEpsilon.insert(alphabet.begin(), alphabet.end());
+            alphabetWithEpsilon.insert(nullptr);
+            for (const auto& b: alphabetWithEpsilon) {
+                if (hasTransition(q2, b)) {
+                    for (const auto& q3: getTargetStates(q2, b)) {
+                        if (automata->hasTransition(q1, b, q3)) {
+                            continue;
+                        }
+
+                        if (tempTransitions.find({q1, b, q3}) != tempTransitions.end()) {
+                            continue;
+                        }
+
+                        workList.push({q1, b, q3});
+                    }
+                }
+            }
+        }
+    }
+
+    return automata;
+}
+
+DFA* NFA::NFAToDFA(Alphabet &alphabet) {
+    DFA* automata = new DFA();
+    uint32_t newState = 0;
+    map<set<uint32_t>, uint32_t> stateMap;
+
+    automata->addState(newState);
+    automata->setStartState(newState);
+    stateMap[{getStartState()}] = newState;
+    newState++;
+
+    queue<set<uint32_t>> workList;
+    workList.push({getStartState()});
+
+    while (!workList.empty()) {
+        set<uint32_t> q = workList.front();
+        workList.pop();
+
+        if (stateMap.find(q) == stateMap.end()) {
+            stateMap[q] = newState;
+            automata->addState(newState);
+            newState++;
+        }
+
+        for (const auto& state: q) {
+            if (_acceptStates.find(state) != _acceptStates.end()) {
+                automata->setAcceptState(stateMap[q]);
+                break;
+            }
+        }
+
+        for (const auto& a: alphabet) {
+            set<uint32_t> Q;
+            for (const auto& state: q) {
+                if (hasTransition(state, a)) {
+                    const auto& targetStates = getTargetStates(state, a);
+                    Q.insert(targetStates.begin(), targetStates.end());
+                }
+            }
+
+            if (stateMap.find(Q) == stateMap.end()) {
+                workList.push(Q);
+                stateMap[Q] = newState;
+                automata->addState(newState);
+                newState++;
+            }
+
+            automata->addTransition(stateMap[q], a, stateMap[Q]);
+        }
+    }
+
+
+    return automata;
+}
+
+DFA* NFA::convertToDFA(Alphabet& alphabet) {
     DFA* automata = new DFA();
 
     map<set<uint32_t>, uint32_t> powerSetMap;
@@ -284,6 +424,14 @@ bool NFA::hasTransition(uint32_t fromState, Statement *statement) {
         return false;
 
     return _transitionTable[fromState].find(statement) != _transitionTable[fromState].end();
+}
+
+bool NFA::hasTransition(uint32_t fromState, Statement *statement, uint32_t toState) {
+    if (!hasTransition(fromState, statement)) {
+        return false;
+    }
+
+    return _transitionTable[fromState][statement].find(toState) != _transitionTable[fromState][statement].end();
 }
 
 bool NFA::isAdjacent(uint32_t fromState, uint32_t toState) {

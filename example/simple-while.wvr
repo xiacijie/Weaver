@@ -14,6 +14,5 @@ parallel(2)
     }
 }
 
-
 assert( x1 == x2);
 

@@ -18,6 +18,7 @@ namespace weaver {
         bool hasTransitionFrom(uint32_t state) override;
         bool hasTransitionTo(uint32_t state) override;
         bool hasTransition(uint32_t fromState, Statement* statement) override;
+        bool hasTransition(uint32_t fromState, Statement* statement, uint32_t toState) override;
         string toString(Alphabet& alphabet);
 
         uint32_t getTargetState(uint32_t fromState, Statement* statement);
