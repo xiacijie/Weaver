@@ -3,6 +3,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.7 FATAL_ERROR)
 
 project(weaver)
 
+#set the build type
+set(CMAKE_BUILD_TYPE "Debug")
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # compiler must be 17
@@ -68,6 +71,9 @@ add_library(frontend
 # add generated grammar to weaver binary target
 add_executable(${PROJECT_NAME} weaver.cpp)
 
+target_link_libraries(frontend
+        antlr4_static)
+
 target_link_libraries(weaver 
         antlr4_static
         frontend
@@ -79,6 +85,7 @@ target_link_libraries(weaver
         verifier
         theoremprover
         config
+        ${CMAKE_THREAD_LIBS_INIT}
        )
 
 Include(FetchContent)
