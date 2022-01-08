@@ -31,10 +31,10 @@ namespace weaver {
                                       IntersectionState& initialState);
 
         set<Trace> proofCheckWithAntiChains(NFA* cfg, DFA* proof);
-        void addToInactivityProof(map<T, map<set<Statement*>, map<Statement*, T>>>& inactivityProof,
-                                  T& fromState, const set<Statement*>& S, Statement* statement, T& toState);
+        void addToInactivityProof(map<T, map<set<Statement*>, map<Statement*, IntersectionState>>>& inactivityProof,
+                                  T& fromState, const set<Statement*>& S, Statement* statement, IntersectionState& toState);
 
-        set<Trace> getCounterExamples(const  map<T, map<set<Statement*>, map<Statement*, T>>>& inactivityProof,
+        set<Trace> getCounterExamples(const  map<T, map<set<Statement*>, map<Statement*, IntersectionState>>>& inactivityProof,
                                       T& initialState);
 
         void alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it,

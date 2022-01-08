@@ -12,7 +12,7 @@ namespace weaver {
 
     private:
         string getCommand(const string& SMTFile) const override
-        { return "echo '" + SMTFile + "'|" + "yices-smt2"; }
+        { return "echo '" + SMTFile + "'|" + YICES_BIN_PATH; }
 
     };
 }

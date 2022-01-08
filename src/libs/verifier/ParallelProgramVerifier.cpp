@@ -27,7 +27,7 @@ bool ParallelProgramVerifier::verify() {
     cout << cfg->toString() << endl;
 
     // start with an empty proof automata
-    auto* proof = new ProofAutomata(program, program->getYices());
+    auto* proof = new ProofAutomata(program, program->getMathSAT());
 
     int round = 1;
     double proofCheckingTime = 0;
@@ -140,7 +140,7 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
     map<IntersectionState, map<Statement*, IntersectionState>> inactivityProof;
 
     set<IntersectionState> inactiveStates;
-    bool inactiveStatesChanged = true;
+    bool notFixed = true;
 
     // first we compute the initial set of inactive states
     for (const auto& s1: cfg->getAcceptStates()) {
@@ -175,9 +175,9 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
 
     // Then we compute backward, enlarging the inactive states until we find we initial state in it
     // or the set does not grow
-    while (inactiveStatesChanged) {
+    while (notFixed) {
         cout << inactiveStates.size() << endl;
-        inactiveStatesChanged = false;
+        notFixed = false;
         for (const auto& s1 : cfg->getStates()) {
 
             // This state in the CFG has no transition
@@ -209,10 +209,7 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
 
                             const auto& targetStates = t.second;
                             for (const auto& targetState: targetStates) {
-                                set<Statement*> nextSleepSet;
-                                uint32_t nextProofState;
-
-                                nextProofState = proof->getTargetState(currentIntersectionState.second, stmt);
+                                uint32_t nextProofState = proof->getTargetState(currentIntersectionState.second, stmt);
 
                                 set<Statement*> R_a;
                                 for (const auto & set : R) {
@@ -225,22 +222,15 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
                                 }
 
                                 set<Statement*> S_union_R_a;
-                                S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
-                                S_union_R_a.insert(R_a.begin(), R_a.end());
-
+                                setUnion(sleepSet, R_a, S_union_R_a);
+                              
                                 set<Statement*> S_union_R_a_minus_D_a;
-                                const auto& D_a = _program->getDependentStatements(stmt);
-
-                                for (const auto& ss : S_union_R_a) {
-                                    if (D_a.find(ss) == D_a.end()) {
-                                        S_union_R_a_minus_D_a.insert(ss);
-                                    }
-                                }
-
-                                nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
+                                const auto& D_a_u = _program->getDependentStatements(stmt);
+                                set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
+                                setDifference(S_union_R_a, D_a, S_union_R_a_minus_D_a);
 
 
-                                LTAState nextLTAState(targetState, false, nextSleepSet);
+                                LTAState nextLTAState(targetState, false, S_union_R_a_minus_D_a);
                                 IntersectionState nextIntersectionState(nextLTAState, nextProofState);
 
                                 // if any state transits into an inactive state
@@ -272,12 +262,10 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
                             LTAState initialLTAState(s1, false, {});
                             IntersectionState initialIntersectionState(initialLTAState, s2);
 
-                            set<Trace> counterExamples = getCounterExamples(inactivityProof, initialIntersectionState);
-
-                            return counterExamples;
+                            return getCounterExamples(inactivityProof, initialIntersectionState);
                         }
 
-                        inactiveStatesChanged = true;
+                        notFixed = true;
 
                         inactiveStates.insert(currentIntersectionState);
                     }
@@ -364,7 +352,7 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
     }
 
     //inactivity proof
-    map<T, map<set<Statement*>, map<Statement*, T>>> inactivityProof;
+    map<T, map<set<Statement*>, map<Statement*, IntersectionState>>> inactivityProof;
 
     bool fixed = false;
 
@@ -388,6 +376,7 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
                 set<set<Statement*>> X_meet;
                 X_meet.insert(possibleStatementsInSleepSet);
 
+                // forall linear orderings
                 sort(R.begin(), R.end());
                 do {
                     set<set<Statement*>> X_join;
@@ -397,11 +386,8 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
                         const auto& targetStates = transit.second;
 
                         for (const auto& targetState: targetStates) {
-                            uint32_t s1_next;
-                            uint32_t s2_next;
-
-                            s1_next = targetState;
-                            s2_next = proof->getTargetState(s2, statement);
+                            uint32_t s1_next = targetState;
+                            uint32_t s2_next = proof->getTargetState(s2, statement);
 
                             T next_t(s1_next, false, s2_next);
 
@@ -433,8 +419,10 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
                                         antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
                                         X_join.clear();
                                         X_join.insert(temp.begin(), temp.end());
-
-                                        addToInactivityProof(inactivityProof, t, S_union_D_a_minus_a, statement, next_t);
+                                        
+                                        LTAState nextLTAState(s1_next, false, S);
+                                        IntersectionState nextIntersectionState(nextLTAState, s2_next);
+                                        addToInactivityProof(inactivityProof, t, S_union_D_a_minus_a, statement, nextIntersectionState);
                                     }
 
                                 }
@@ -451,8 +439,7 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
                 while (next_permutation(R.begin(), R.end()));
 
                 // check if current state is inactive
-                // if inactive
-                if (!X_meet.empty()) {
+                if (!X_meet.empty()) { // if inactive
 
                     // check start state
                     if (s1 == cfg->getStartState() && s2 == proof->getStartState()) {
@@ -487,9 +474,9 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
     return {};
 }
 
-void ParallelProgramVerifier::addToInactivityProof(map<T, map<set<Statement *>, map<Statement *, T>>> &inactivityProof,
+void ParallelProgramVerifier::addToInactivityProof(map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof,
                                                    T &fromState, const set<Statement *> &S, Statement *statement,
-                                                   T &toState) {
+                                                   IntersectionState &toState) {
     const auto& it = inactivityProof.find(fromState);
     if (it != inactivityProof.end()) {
         bool isSubsumedByAny = false;
@@ -522,12 +509,22 @@ void ParallelProgramVerifier::addToInactivityProof(map<T, map<set<Statement *>, 
 }
 
 set<Trace> ParallelProgramVerifier::getCounterExamples(
-        const map<T, map<set<Statement *>, map<Statement *, T>>> &inactivityProof, T &initialState) {
+        const map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof, T &initialState) {
 
     set<Trace> counterExamples;
-    queue<pair<T, Trace>> q;
+    queue<pair<IntersectionState, Trace>> q;
 
-    q.push(make_pair(initialState, Trace({})));
+    const auto& it = inactivityProof.find(initialState);
+    if (it == inactivityProof.end()) {
+        assert(false && "Error!");
+    }
+
+    const set<Statement*>& s = it->second.begin()->first;
+
+    LTAState ls(get<0>(initialState), false, s);
+    IntersectionState is(ls, get<2>(initialState));
+
+    q.push(make_pair(is, Trace({})));
 
     while (!q.empty()) {
         auto current = q.front();
@@ -535,20 +532,29 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
 
         const auto& currentState = current.first;
         const auto& currentTrace = current.second;
+        
+        T currentT(get<0>(currentState.first), false, currentState.second);
+        const auto& currentS = get<2>(currentState.first);
 
-        const auto& it = inactivityProof.find(currentState);
-        if (it != inactivityProof.end()) {
+        const auto& it1 = inactivityProof.find(currentT);
+        if (it1 != inactivityProof.end()) {
             Trace nextTrace(currentTrace.begin(), currentTrace.end());
+            
+            const auto& it2 = it1->second.find(currentS);
 
-            for (const auto& tm : it->second) {
-                for (const auto& t : tm.second) {
+            if (it2 != it1->second.end()) {
+                for (const auto& t : it2->second) {
                     Statement* stmt = t.first;
-                    const T& nextState = t.second;
+                    const IntersectionState& nextState = t.second;
                     nextTrace.push_back(stmt);
                     q.push(make_pair(nextState, nextTrace));
                     nextTrace.pop_back();
                 }
             }
+            else { // leaf node
+                counterExamples.insert(currentTrace);
+            }
+    
         }
         else { // leaf node
             counterExamples.insert(currentTrace);

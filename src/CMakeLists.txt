@@ -41,6 +41,10 @@ antlr_target(WeaverGrammarParser ${CMAKE_CURRENT_SOURCE_DIR}/grammar/WeaverParse
 # the global path for theorem prover binaries
 add_definitions(-DSMT_INTERPOL_BIN_PATH=\"${PROJECT_SOURCE_DIR}/bin/smt-interpol/smt-interpol.jar\")
 add_definitions(-DMATH_SAT_BIN_PATH=\"${PROJECT_SOURCE_DIR}/bin/math-sat/mathsat\")
+add_definitions(-DYICES_BIN_PATH=\"${PROJECT_SOURCE_DIR}/bin/yices/yices-smt2\")
+
+#supress warnings
+add_definitions(-w)
 
 # include generated files in project environment
 include_directories(${ANTLR_WeaverGrammarLexer_OUTPUT_DIR})
