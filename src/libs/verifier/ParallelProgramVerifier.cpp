@@ -20,7 +20,11 @@ bool ParallelProgramVerifier::verify() {
     cout << "Start verifying... " << endl;
     bool correct = false;
     Program* program = _program;
+
+    // eliminate those epsilon transitions
     NFA* cfg = program->getCFG().NFAEpsilonToNFA(program->getAlphabet());
+
+    cout << cfg->toString() << endl;
 
     // start with an empty proof automata
     auto* proof = new ProofAutomata(program, program->getYices());
@@ -208,38 +212,33 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
                                 set<Statement*> nextSleepSet;
                                 uint32_t nextProofState;
 
-                                if (stmt == nullptr) {
-                                    nextSleepSet.insert(sleepSet.begin(), sleepSet.end());
-                                    nextProofState = currentIntersectionState.second;
-                                }
-                                else {
-                                    nextProofState = proof->getTargetState(currentIntersectionState.second, stmt);
+                                nextProofState = proof->getTargetState(currentIntersectionState.second, stmt);
 
-                                    set<Statement*> R_a;
-                                    for (const auto & set : R) {
-                                        if (set->find(stmt) != set->end()) {
-                                            break;
-                                        }
-                                        else {
-                                            R_a.insert(set->begin(), set->end());
-                                        }
+                                set<Statement*> R_a;
+                                for (const auto & set : R) {
+                                    if (set->find(stmt) != set->end()) {
+                                        break;
                                     }
-
-                                    set<Statement*> S_union_R_a;
-                                    S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
-                                    S_union_R_a.insert(R_a.begin(), R_a.end());
-
-                                    set<Statement*> S_union_R_a_minus_D_a;
-                                    const auto& D_a = _program->getDependentStatements(stmt);
-
-                                    for (const auto& ss : S_union_R_a) {
-                                        if (D_a.find(ss) == D_a.end()) {
-                                            S_union_R_a_minus_D_a.insert(ss);
-                                        }
+                                    else {
+                                        R_a.insert(set->begin(), set->end());
                                     }
-
-                                    nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
                                 }
+
+                                set<Statement*> S_union_R_a;
+                                S_union_R_a.insert(sleepSet.begin(), sleepSet.end());
+                                S_union_R_a.insert(R_a.begin(), R_a.end());
+
+                                set<Statement*> S_union_R_a_minus_D_a;
+                                const auto& D_a = _program->getDependentStatements(stmt);
+
+                                for (const auto& ss : S_union_R_a) {
+                                    if (D_a.find(ss) == D_a.end()) {
+                                        S_union_R_a_minus_D_a.insert(ss);
+                                    }
+                                }
+
+                                nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
+
 
                                 LTAState nextLTAState(targetState, false, nextSleepSet);
                                 IntersectionState nextIntersectionState(nextLTAState, nextProofState);
@@ -321,14 +320,9 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
             for (const auto& t : it->second) {
                 Statement* stmt = t.first;
                 const IntersectionState& nextState = t.second;
-
-                if (stmt != nullptr)
-                    nextTrace.push_back(stmt);
-
+                nextTrace.push_back(stmt);
                 q.push(make_pair(nextState, nextTrace));
-
-                if (stmt != nullptr)
-                    nextTrace.pop_back();
+                nextTrace.pop_back();
             }
         }
         else { // leaf node
@@ -405,60 +399,43 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
                         for (const auto& targetState: targetStates) {
                             uint32_t s1_next;
                             uint32_t s2_next;
-                            if (statement == nullptr) {
-                                s1_next = targetState;
-                                s2_next = s2;
-                            }
-                            else {
-                                s1_next = targetState;
-                                s2_next = proof->getTargetState(s2, statement);
-                            }
+
+                            s1_next = targetState;
+                            s2_next = proof->getTargetState(s2, statement);
 
                             T next_t(s1_next, false, s2_next);
 
                             // transit into an inactive state
                             if (X.find(next_t) != X.end()) {
                                 for (const auto& S : X[next_t]) {
+                                    set<Statement*> R_a;
+                                    for (const auto & set : R) {
+                                        if (set->find(statement) != set->end()) {
+                                            break;
+                                        }
+                                        else {
+                                            R_a.insert(set->begin(), set->end());
+                                        }
+                                    }
 
-                                    if (statement == nullptr) {
+                                    const auto& D_a_u = _program->getDependentStatements(statement);
+                                    set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
+                                    set<Statement*> R_a_minus_D_a;
+                                    setDifference(R_a, D_a, R_a_minus_D_a);
+                                    bool include = setInclusion(R_a_minus_D_a, S);
+
+                                    if (include) {
+                                        set<Statement*> S_union_D_a;
+                                        setUnion(S, D_a, S_union_D_a);
+                                        set<Statement*> S_union_D_a_minus_a;
+                                        setDifference(S_union_D_a, {statement}, S_union_D_a_minus_a);
                                         set<set<Statement*>> temp;
-                                        antiChainJoin(X_join, {S}, temp);
+                                        antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
                                         X_join.clear();
                                         X_join.insert(temp.begin(), temp.end());
 
-                                        addToInactivityProof(inactivityProof, t, S, statement, next_t);
+                                        addToInactivityProof(inactivityProof, t, S_union_D_a_minus_a, statement, next_t);
                                     }
-                                    else {
-                                        set<Statement*> R_a;
-                                        for (const auto & set : R) {
-                                            if (set->find(statement) != set->end()) {
-                                                break;
-                                            }
-                                            else {
-                                                R_a.insert(set->begin(), set->end());
-                                            }
-                                        }
-
-                                        const auto& D_a_u = _program->getDependentStatements(statement);
-                                        set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
-                                        set<Statement*> R_a_minus_D_a;
-                                        setDifference(R_a, D_a, R_a_minus_D_a);
-                                        bool include = setInclusion(R_a_minus_D_a, S);
-
-                                        if (include) {
-                                            set<Statement*> S_union_D_a;
-                                            setUnion(S, D_a, S_union_D_a);
-                                            set<Statement*> S_union_D_a_minus_a;
-                                            setDifference(S_union_D_a, {statement}, S_union_D_a_minus_a);
-                                            set<set<Statement*>> temp;
-                                            antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
-                                            X_join.clear();
-                                            X_join.insert(temp.begin(), temp.end());
-
-                                            addToInactivityProof(inactivityProof, t, S_union_D_a_minus_a, statement, next_t);
-                                        }
-                                    }
-
 
                                 }
                             }
@@ -567,13 +544,9 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
                 for (const auto& t : tm.second) {
                     Statement* stmt = t.first;
                     const T& nextState = t.second;
-                    if (stmt != nullptr)
-                        nextTrace.push_back(stmt);
-
+                    nextTrace.push_back(stmt);
                     q.push(make_pair(nextState, nextTrace));
-
-                    if (stmt != nullptr)
-                        nextTrace.pop_back();
+                    nextTrace.pop_back();
                 }
             }
         }

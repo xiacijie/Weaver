@@ -5,12 +5,12 @@ bool b;
 
 parallel(2)
 {
-
+    if (b)
       a++;
 
 }
 {
-
+    if (b)
       a--;
 
 }
