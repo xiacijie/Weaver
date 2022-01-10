@@ -1,6 +1,7 @@
 #include <string>
 #include "Program.h"
 #include "ParallelProgramVerifier.h"
+#include "SequentialProgramVerifier.h"
 #include "Log.h"
 #include "Config.h"
 
@@ -26,7 +27,7 @@ int main(int argc , char *argv[]) {
     Program program = Program();
     program.init(config.fileName);
 
-    ParallelProgramVerifier c(&program);
+    SequentialProgramVerifier c(&program);
     c.verify();
 
 	return 0;

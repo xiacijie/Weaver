@@ -1,5 +1,6 @@
 #include "SequentialProgramVerifier.h"
 #include "InterpolantAutomataBuilder.h"
+#include "ProofAutomata.h"
 
 #include <iostream>
 #include <queue>
@@ -13,9 +14,9 @@ void SequentialProgramVerifier::verify() {
 
     cout << "Start Verifying..." << endl;
 
-    NFA* cfg = _cfg;
+    NFA* cfg = _program->getCFG().NFAEpsilonToNFA(_program->getAlphabet());
 
-    DFA* proofAutomata = nullptr;
+    ProofAutomata proof(_program, _program->getYices());
 
     int round = 0;
 
@@ -24,7 +25,9 @@ void SequentialProgramVerifier::verify() {
 
         cout << "1. Get error trace..." << endl;
 
-        Trace errorTrace = getErrorTrace(cfg, proofAutomata);
+        DFA* Dproof = proof.NFAToDFA(_program->getAlphabet());
+        Trace errorTrace = proofCheck(cfg, Dproof);
+        delete Dproof;
 
         if (errorTrace.empty()) {
             cout << "***********************************************" << endl;
@@ -39,7 +42,7 @@ void SequentialProgramVerifier::verify() {
         }
 
         cout << "2. Do Craig Interpolantion ..." << endl;
-        Interpolants interpolants = _prover->generateInterpols(errorTrace);
+        Interpolants interpolants = _program->getMathSAT()->generateInterpols(errorTrace);
 
         if (interpolants.empty()) {
             cerr << "This Program is Incorrect!" << endl;
@@ -50,95 +53,64 @@ void SequentialProgramVerifier::verify() {
             abort();
         }
 
-        cout << "3. Construct Interpolant Automata...  " << endl;
-        NFA* interpolAutomata = InterpolantAutomataBuilder::build(errorTrace, interpolants, _prover, _program);
-        DFA* determinsticInterpolAutomata = interpolAutomata->convertToDFA(_program->getAlphabet());
-        delete interpolAutomata;
+        cout << "3. Construct Proof Automata...  " << endl;
+        proof.extend(interpolants, _program->getAlphabet());
 
-        cout << "4. Minimize interpolant automata..." << endl;
-        determinsticInterpolAutomata->minimize(_program->getAlphabet());
 
-        cout << "5. Construct Union..." << endl;
-        if (!proofAutomata) {
-            proofAutomata = determinsticInterpolAutomata;
-        }
-        else {
-            DFA* lastProofAutomata  = proofAutomata;
-            proofAutomata = proofAutomata->Union(determinsticInterpolAutomata, _program->getAlphabet());
-            delete lastProofAutomata;
-            delete determinsticInterpolAutomata;
-        }
-
-        cout << "Proof size: " << proofAutomata->getNumStates() << endl;
-
-        proofAutomata->minimize(_program->getAlphabet());
+        cout << "Proof size: " << proof.getNumStates() << endl;
     }
 
     cout << "Fine" << endl;
 
 }
 
-Trace SequentialProgramVerifier::getErrorTrace(NFA *cfg, DFA *proofAutomata) {
-
-    if (proofAutomata == nullptr) {
-        proofAutomata = new DFA();
-        proofAutomata->addState(0);
-        proofAutomata->setStartState(0);
-        proofAutomata->complete(1, _program->getAlphabet());
-    }
-
-    assert(proofAutomata->isComplete(_program->getAlphabet()) && "Error");
-
+Trace SequentialProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
     // verify the inclusion on the fly
     set<pair<uint32_t, uint32_t>> states;
 
-    queue<pair<pair<uint32_t, uint32_t>, Trace>> workList;
+    auto startState = make_pair(cfg->getStartState(), proof->getStartState());
+    Trace errorTrace;
+    bool errorTraceFound = false;
 
-    auto startState = make_pair(cfg->getStartState(), proofAutomata->getStartState());
+    proofCheckHelper(cfg, proof, states, startState, {}, errorTraceFound, errorTrace);
 
-    Trace empty;
-    workList.push(make_pair(startState, empty));
+    return errorTrace;
+}
 
-    while (!workList.empty()) {
-        auto currentState = workList.front().first;
-        auto currentTrace = workList.front().second;
-        workList.pop();
+void SequentialProgramVerifier::proofCheckHelper(NFA* cfg, DFA* proof,
+                                                set<pair<uint32_t, uint32_t>>& states,
+                                                pair<uint32_t, uint32_t> currentState,
+                                                Trace currentTrace,
+                                                bool& errorTraceFound,
+                                                Trace& errorTrace) {
+    if (errorTraceFound == true)
+        return;
 
-        states.insert(currentState);
+    states.insert(currentState);
 
-        if (cfg->isAcceptState(currentState.first) && !proofAutomata->isAcceptState(currentState.second)) {
-            return currentTrace;
-        }
+    if (cfg->isAcceptState(currentState.first) && !proof->isAcceptState(currentState.second)) {
+        errorTraceFound = true;
+        errorTrace.insert(errorTrace.end(), currentTrace.begin(), currentTrace.end());
+        return;
+    }
 
-        if (_cfg->hasTransitionFrom(currentState.first)) {
-            const auto &transitions = _cfg->getTransitions(currentState.first);
-            for (const auto &it: transitions) {
-                Statement *stmt = it.first;
+    if (cfg->hasTransitionFrom(currentState.first)) {
+        for (const auto& t : cfg->getTransitions(currentState.first)) {
+            Statement* stmt = t.first;
+            if (stmt == nullptr) {
+                cout << "oops" << endl;
+            }
+            for (const auto& nextState1 : t.second) {
+                uint32_t nextState2 = proof->getTargetState(currentState.second, stmt);
+                auto nextState = make_pair(nextState1, nextState2);
 
-                for (const auto& nextState1 : it.second) {
-                    uint32_t nextState2;
-
-                    if (stmt == nullptr) {
-                        nextState2 = currentState.second;
-                    } else {
-                        nextState2 = proofAutomata->getTargetState(currentState.second, stmt);
-                    }
-
-                    auto nextState = make_pair(nextState1, nextState2);
-
-                    if (states.find(nextState) == states.end()) {
-                        Trace t(currentTrace.begin(), currentTrace.end());
-
-                        if (stmt)
-                            t.push_back(stmt);
-
-                        workList.push(make_pair(nextState, t));
-                    }
+                if (states.find(nextState) == states.end()) {
+                    currentTrace.push_back(stmt);
+                    proofCheckHelper(cfg, proof, states, nextState, currentTrace, errorTraceFound, errorTrace);
+                    currentTrace.pop_back();
                 }
-
             }
         }
-
     }
-    return empty;
+
 }

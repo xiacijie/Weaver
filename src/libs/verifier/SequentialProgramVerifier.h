@@ -13,20 +13,20 @@ namespace weaver {
     class SequentialProgramVerifier {
     public:
         SequentialProgramVerifier(Program* program) :
-            _program(program),
-            _cfg(&program->getCFG()),
-            _prover(new SMTInterpol(program))
+            _program(program)
             {}
 
-        ~SequentialProgramVerifier() { delete _prover; }
         void verify();
     private:
-        Trace getErrorTrace(NFA* cfg, DFA* proofAutomata);
+        Trace proofCheck(NFA* cfg, DFA* proof);
+        void proofCheckHelper(NFA* cfg, DFA* proof, 
+                                set<pair<uint32_t, uint32_t>>& states,
+                                pair<uint32_t, uint32_t> currentState, 
+                                Trace currentTrace,
+                                bool& errorTraceFound,
+                                Trace& errorTrace);
 
         Program* _program;
-        NFA* _cfg;
-        SMTInterpol* _prover;
-
     };
 }
 

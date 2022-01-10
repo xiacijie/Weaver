@@ -14,7 +14,7 @@ using namespace util;
 
 
 using clo = std::chrono::system_clock;
-using sec = std::chrono::duration<double>;
+using second = std::chrono::duration<double>;
 
 bool ParallelProgramVerifier::verify() {
     cout << "Start verifying... " << endl;
@@ -42,7 +42,7 @@ bool ParallelProgramVerifier::verify() {
         cout << "Getting Error Trace..." << endl;
         const auto before = clo::now();
         auto errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
-        const sec duration = clo::now() - before;
+        const second duration = clo::now() - before;
 
         cout << duration.count() << endl;
 
@@ -534,8 +534,6 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
         const auto& currentTrace = current.second;
         
         T currentT(get<0>(currentState.first), false, currentState.second);
-
-        cout << get<0>(currentState.first) << "," << currentState.second << endl;
         
         const auto& currentS = get<2>(currentState.first);
 
