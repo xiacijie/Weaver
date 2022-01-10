@@ -1,6 +1,6 @@
 #pragma once
-#include "../theoremprover/TheoremProverBase.h"
-#include "../automata/NFA.h"
+#include "TheoremProverBase.h"
+#include "NFA.h"
 
 namespace weaver {
     class InterpolantAutomataBuilder {

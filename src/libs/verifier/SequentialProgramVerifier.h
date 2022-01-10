@@ -1,8 +1,7 @@
 #pragma once
-#include "../program/Program.h"
-#include "../automata/NFA.h"
-
-#include "../theoremprover/SMTInterpol.h"
+#include "Program.h"
+#include "NFA.h"
+#include "SMTInterpol.h"
 #include <vector>
 
 using namespace std;

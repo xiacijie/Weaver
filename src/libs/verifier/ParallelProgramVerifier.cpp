@@ -1,9 +1,9 @@
 #include "ParallelProgramVerifier.h"
-#include "../theoremprover/SMTInterpol.h"
-#include "../theoremprover/MathSAT.h"
-#include "../theoremprover/Yices.h"
+#include "SMTInterpol.h"
+#include "MathSAT.h"
+#include "Yices.h"
 #include "InterpolantAutomataBuilder.h"
-#include "../automata/ProofAutomata.h"
+#include "ProofAutomata.h"
 #include <chrono>
 
 #define COUNTER_EXAMPLE_SELECTION 0
@@ -534,27 +534,35 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
         const auto& currentTrace = current.second;
         
         T currentT(get<0>(currentState.first), false, currentState.second);
+
+        cout << get<0>(currentState.first) << "," << currentState.second << endl;
+        
         const auto& currentS = get<2>(currentState.first);
 
         const auto& it1 = inactivityProof.find(currentT);
         if (it1 != inactivityProof.end()) {
             Trace nextTrace(currentTrace.begin(), currentTrace.end());
             
-            const auto& it2 = it1->second.find(currentS);
+            bool existATransition = false;
+            for (const auto& it2 : it1->second) {
+                const auto& maxS = it2.first;
+                if (setInclusion(currentS, maxS)) {
+                    
+                    existATransition = true;
 
-            if (it2 != it1->second.end()) {
-                for (const auto& t : it2->second) {
-                    Statement* stmt = t.first;
-                    const IntersectionState& nextState = t.second;
-                    nextTrace.push_back(stmt);
-                    q.push(make_pair(nextState, nextTrace));
-                    nextTrace.pop_back();
+                    for (const auto& t: it2.second) {
+                        Statement* stmt = t.first;
+                        const IntersectionState& nextState = t.second;
+                        nextTrace.push_back(stmt);
+                        q.push(make_pair(nextState, nextTrace));
+                        nextTrace.pop_back();
+                    }
                 }
-            }
-            else { // leaf node
+            }       
+
+            if (!existATransition) {
                 counterExamples.insert(currentTrace);
             }
-    
         }
         else { // leaf node
             counterExamples.insert(currentTrace);

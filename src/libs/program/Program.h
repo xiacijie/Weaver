@@ -2,14 +2,13 @@
 #include <unordered_map>
 #include <vector>
 #include <unordered_set>
-#include "../ast/VariableTable.h"
-#include "../ast/AST.h"
-#include "../automata/NFA.h"
-#include "Thread.h"
+#include "VariableTable.h"
+#include "AST.h"
+#include "NFA.h"
 #include "antlr4-runtime.h"
-#include "../theoremprover/MathSAT.h"
-#include "../theoremprover/Yices.h"
-#include "../theoremprover/SMTInterpol.h"
+#include "MathSAT.h"
+#include "Yices.h"
+#include "SMTInterpol.h"
 
 using namespace std;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "TheoremProverBase.h"
-#include "../ast/VariableTable.h"
+#include "VariableTable.h"
 #include "String.h"
 
 using namespace util;

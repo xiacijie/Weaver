@@ -5,7 +5,7 @@
 #include <iostream>
 #include <queue>
 #include <cassert>
-#include "../ast/ASTNode.h"
+#include "ASTNode.h"
 
 using namespace weaver;
 using namespace std;

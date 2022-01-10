@@ -1,6 +1,6 @@
 #include "ASTNode.h"
 #include <sstream>
-#include "../program/Program.h"
+#include "Program.h"
 
 using namespace std;
 using namespace weaver;

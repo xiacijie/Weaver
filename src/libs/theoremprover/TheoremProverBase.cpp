@@ -1,7 +1,7 @@
 #include "TheoremProverBase.h"
 #include <cstdio>
 #include <memory>
-#include "../program/Program.h"
+#include "Program.h"
 
 #define BUFFER_SIZE 128
 

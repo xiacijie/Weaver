@@ -1,7 +1,7 @@
 #pragma once
-#include "../frontend/WeaverParserBaseVisitor.h"
-#include "../frontend/WeaverLexer.h"
-#include "../program/Program.h"
+#include "WeaverParserBaseVisitor.h"
+#include "WeaverLexer.h"
+#include "Program.h"
 #include "AST.h"
 #include <iostream>
 #include <unordered_map>

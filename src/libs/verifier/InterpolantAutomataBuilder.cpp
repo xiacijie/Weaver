@@ -1,5 +1,5 @@
 #include "InterpolantAutomataBuilder.h"
-#include "../program/Program.h"
+#include "Program.h"
 using namespace weaver;
 using namespace std;
 

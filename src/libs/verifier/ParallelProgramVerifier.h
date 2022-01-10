@@ -1,6 +1,6 @@
 #pragma once
-#include "../program/Program.h"
-#include "../theoremprover/TheoremProverBase.h"
+#include "Program.h"
+#include "TheoremProverBase.h"
 #include <functional>
 #include "Set.h"
 #include "AntiChain.h"

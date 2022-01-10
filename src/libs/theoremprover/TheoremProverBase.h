@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../ast/VariableTable.h"
+#include "VariableTable.h"
 #include <string>
 #include <queue>
 #include <unordered_set>
-#include "../ast/AST.h"
+#include "AST.h"
 #include <sstream>
-#include "../program/Statement.h"
+#include "Statement.h"
 
 #define SSA_DELIMITER '-'
 #define FORMULA_LABEL "L"
