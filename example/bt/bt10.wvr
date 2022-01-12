@@ -1,0 +1,117 @@
+bool stoppingFlag, stopped, stoppingEvent, a;
+int pendingIO;
+
+assume(pendingIO == 1 && !stoppingFlag && !stopped && !stoppingEvent && !a);
+
+parallel(10)
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        a = stopped;
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+} 
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+    stoppingFlag = true;
+    atomic {
+        pendingIO = pendingIO - 1;
+        stoppingEvent = (pendingIO == 0);
+    }
+    assume(stoppingEvent);
+    stopped = true;
+} 
+
+assert(!a);

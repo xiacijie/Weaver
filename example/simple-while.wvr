@@ -1,27 +1,20 @@
-/*
+
 int x1,x2;
 
 assume(x1 == x2 && x1 >=0 );
 
-parallel(2)
-{
-    while (x1 < 10000) {
-        x1++;
-    }
+
+
+while (x1 < 10000) {
+    x1++;
 }
-{
-    while (x2 < 10000) {
-        x2++;
-    }
+
+
+while (x2 < 10000) {
+    x2 = x2 + 1;
 }
+
 
 assert( x1 == x2);
-*/
 
-int x = 0;
 
-while (x < 1000) {
-    x++;
-}
-
-assert(x == 1000);

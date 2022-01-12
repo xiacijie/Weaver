@@ -1,16 +1,16 @@
 // huh... This is just simple test case
 
 int a = 1;
-bool b;
+
 
 parallel(2)
 {
-    if (b)
+
       a++;
 
 }
 {
-    if (b)
+
       a--;
 
 }

@@ -3,9 +3,9 @@ int pendingIO;
 
 assume(pendingIO == 1 && !stoppingFlag && !stopped && !stoppingEvent && !a);
 
-parallel(4)
+parallel(7)
 {
-        //atomic { // enter
+        atomic { // enter
             assume(!stoppingFlag);
             pendingIO = pendingIO + 1;
         }
@@ -24,9 +24,42 @@ parallel(4)
         // do work
         atomic { // exit
             pendingIO = pendingIO - 1;
-            stoppingEvent = (pendingIO == 0) ;
+            stoppingEvent = (pendingIO == 0);
         }
 } 
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
+{
+        atomic { // enter
+            assume(!stoppingFlag);
+            pendingIO = pendingIO + 1;
+        }
+        // do work
+        atomic { // exit
+            pendingIO = pendingIO - 1;
+            stoppingEvent = (pendingIO == 0);
+        }
+}
 {
         atomic { // enter
             assume(!stoppingFlag);

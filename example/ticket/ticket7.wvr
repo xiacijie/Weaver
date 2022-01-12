@@ -1,0 +1,66 @@
+int m1, m2, m3, m4, m5, m6, m7, s, t, x, y; 
+
+assume(s == 0 && t == 0 && x == 0 && y == 0);
+
+parallel(7)
+{
+    atomic {
+        m1 = t;
+        t = t + 1;
+    }
+    assume(m1 <= s);
+    x = 1;
+    x = 0;
+    s = s + 1;
+} 
+{
+    atomic {
+        m2 = t;
+        t = t + 1;
+    }
+    assume(m2 <= s);
+    s = s + 1;
+} 
+{
+    atomic {
+        m3 = t;
+        t = t + 1;
+    }
+    assume(m3 <= s);
+    s = s + 1;
+}
+{
+    atomic {
+        m4 = t;
+        t = t + 1;
+    }
+    assume(m4 <= s);
+    s = s + 1;
+} 
+{
+    atomic {
+        m5 = t;
+        t = t + 1;
+    }
+    assume(m5 <= s);
+    s = s + 1;
+} 
+{
+    atomic {
+        m6 = t;
+        t = t + 1;
+    }
+    assume(m6 <= s);
+    s = s + 1;
+} 
+{
+    atomic {
+        m7 = t;
+        t = t + 1;
+    }
+    assume(m7 <= s);
+    y = x;
+    s = s + 1;
+} 
+
+assert(y == 0);
