@@ -6,9 +6,9 @@
 #include "AntiChain.h"
 
 namespace weaver {
-    class ParallelProgramVerifier {
+    class LoopingTreeAutomataVerifier {
     public:
-        explicit ParallelProgramVerifier(Program* program):
+        explicit LoopingTreeAutomataVerifier(Program* program):
             _program(program)
         {}
 

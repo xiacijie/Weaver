@@ -305,15 +305,13 @@ bool SMTSolverBase::checkIndependenceRelation(Statement* s1, Statement* s2) cons
     if (conjunctEQ.empty()) {
         conjunctEQ = getTrue();
     }
-    
+
     SMTFile << getAssert(getNotFormula(conjunctEQ))  << endl;
     
     
     SMTFile << checkSat() << endl;
 
-    cout << SMTFile.str();
     string result = exec(getCommand(SMTFile.str()));
-    cout << result << endl;
 
     if (result.substr(0, 6) == "(error") {
         assert(false && "Error with the theorem prover!\n");

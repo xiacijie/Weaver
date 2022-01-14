@@ -1,7 +1,7 @@
 #include <string>
 #include "Program.h"
-#include "ParallelProgramVerifier.h"
-#include "SequentialProgramVerifier.h"
+#include "LoopingTreeAutomataVerifier.h"
+#include "FiniteAutomataVerifier.h"
 #include "Log.h"
 #include "Config.h"
 
@@ -27,8 +27,8 @@ int main(int argc , char *argv[]) {
     Program program = Program();
     program.init(config.fileName);
 
-    // SequentialProgramVerifier c(&program);
-    // c.verify();
+    LoopingTreeAutomataVerifier c(&program);
+    c.verify();
 
 	return 0;
 }

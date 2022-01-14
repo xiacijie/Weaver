@@ -8,11 +8,11 @@ using namespace std;
 namespace weaver {
 
     /**
-     * The correctness verifier for the sequential programs
+     * The program verifier using finite automata
      */
-    class SequentialProgramVerifier {
+    class FiniteAutomataVerifier {
     public:
-        SequentialProgramVerifier(Program* program) :
+        FiniteAutomataVerifier(Program* program) :
             _program(program)
             {}
 

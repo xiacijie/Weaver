@@ -1,10 +1,8 @@
-#include "ParallelProgramVerifier.h"
+#include "LoopingTreeAutomataVerifier.h"
 #include "SMTInterpol.h"
 #include "MathSAT.h"
 #include "Yices.h"
-#include "InterpolantAutomataBuilder.h"
 #include "ProofAutomata.h"
-#include <chrono>
 
 #define COUNTER_EXAMPLE_SELECTION 0
 
@@ -16,37 +14,29 @@ using namespace util;
 using clo = std::chrono::system_clock;
 using second = std::chrono::duration<double>;
 
-bool ParallelProgramVerifier::verify() {
+bool LoopingTreeAutomataVerifier::verify() {
     cout << "Start verifying... " << endl;
     bool correct = false;
     Program* program = _program;
 
     // eliminate those epsilon transitions
-    NFA* cfg = program->getCFG().NFAEpsilonToNFA(program->getAlphabet());
-
-    cout << cfg->toString() << endl;
+    NFA* cfg = &program->getCFG();
 
     // start with an empty proof automata
-    auto* proof = new ProofAutomata(program, program->getYices());
+    ProofAutomata proof(program, program->getYices());
 
     int round = 1;
-    double proofCheckingTime = 0;
 
     while (true) {
         cout << "=========== Round: " << round++ << " ==============" << endl;
-        cout << "Proof Size : " << proof->getNumStates() << endl;
+        cout << "Proof Size : " << proof.getNumStates() << endl;
 
         cout << "Convert Proof to DFA..." << endl;
-        DFA* DProof = proof->NFAToDFA(program->getAlphabet());
+        DFA* DProof = proof.NFAToDFA(program->getAlphabet());
 
         cout << "Getting Error Trace..." << endl;
-        const auto before = clo::now();
-        auto errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
-        const second duration = clo::now() - before;
 
-        cout << duration.count() << endl;
-
-        proofCheckingTime += duration.count();
+        auto errorTraceSet = proofCheck(cfg, DProof);
 
         delete DProof;
 
@@ -77,7 +67,7 @@ bool ParallelProgramVerifier::verify() {
                 }
                 cout << endl;
 
-                proof->extend(interpols, program->getAlphabet());
+                proof.extend(interpols, program->getAlphabet());
             }
             else  {
                 bool anyIncorrectTrace = false;
@@ -108,7 +98,7 @@ bool ParallelProgramVerifier::verify() {
                     }
                     cout << endl;
 
-                    proof->extend(interpols, program->getAlphabet());
+                    proof.extend(interpols, program->getAlphabet());
                 }
 
                 if (anyIncorrectTrace) {
@@ -119,7 +109,6 @@ bool ParallelProgramVerifier::verify() {
 
         }
         else {
-            cout << "Proof Checking Time: " << proofCheckingTime << "s" << endl;
             cout << "***********************************************" << endl;
             cout << "**   End: The program is verified correct!   **" << endl;
             cout << "***********************************************" << endl;
@@ -129,13 +118,11 @@ bool ParallelProgramVerifier::verify() {
         }
     }
 
-    delete proof;
-
     return correct;
 }
 
 
-set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
+set<Trace> LoopingTreeAutomataVerifier::proofCheck(NFA* cfg, DFA* proof) {
 
     map<IntersectionState, map<Statement*, IntersectionState>> inactivityProof;
 
@@ -209,28 +196,40 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
 
                             const auto& targetStates = t.second;
                             for (const auto& targetState: targetStates) {
-                                uint32_t nextProofState = proof->getTargetState(currentIntersectionState.second, stmt);
+                                set<Statement*> nextSleepSet;
+                                uint32_t nextProofState;
 
-                                set<Statement*> R_a;
-                                for (const auto & set : R) {
-                                    if (set->find(stmt) != set->end()) {
-                                        break;
+                                if (stmt == nullptr) {
+                                    nextSleepSet.insert(sleepSet.begin(), sleepSet.end());
+                                    nextProofState = currentIntersectionState.second;
+                                }
+                                else {
+                                    nextProofState = proof->getTargetState(currentIntersectionState.second, stmt);
+
+                                    set<Statement*> R_a;
+                                    for (const auto & set : R) {
+                                        if (set->find(stmt) != set->end()) {
+                                            break;
+                                        }
+                                        else {
+                                            R_a.insert(set->begin(), set->end());
+                                        }
                                     }
-                                    else {
-                                        R_a.insert(set->begin(), set->end());
-                                    }
+
+                                    set<Statement*> S_union_R_a;
+                                    setUnion(sleepSet, R_a, S_union_R_a);
+                                
+                                    set<Statement*> S_union_R_a_minus_D_a;
+                                    const auto& D_a_u = _program->getDependentStatements(stmt);
+                                    set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
+                                    setDifference(S_union_R_a, D_a, S_union_R_a_minus_D_a);
+
+                                    nextSleepSet.insert(S_union_R_a_minus_D_a.begin(), S_union_R_a_minus_D_a.end());
                                 }
 
-                                set<Statement*> S_union_R_a;
-                                setUnion(sleepSet, R_a, S_union_R_a);
                               
-                                set<Statement*> S_union_R_a_minus_D_a;
-                                const auto& D_a_u = _program->getDependentStatements(stmt);
-                                set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
-                                setDifference(S_union_R_a, D_a, S_union_R_a_minus_D_a);
 
-
-                                LTAState nextLTAState(targetState, false, S_union_R_a_minus_D_a);
+                                LTAState nextLTAState(targetState, false, nextSleepSet);
                                 IntersectionState nextIntersectionState(nextLTAState, nextProofState);
 
                                 // if any state transits into an inactive state
@@ -285,7 +284,7 @@ set<Trace> ParallelProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
     return {};
 }
 
-set<Trace> ParallelProgramVerifier::getCounterExamples(
+set<Trace> LoopingTreeAutomataVerifier::getCounterExamples(
         const map <IntersectionState, map<Statement *, IntersectionState>> &inactivityProof,
         IntersectionState& initialState) {
 
@@ -308,9 +307,12 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
             for (const auto& t : it->second) {
                 Statement* stmt = t.first;
                 const IntersectionState& nextState = t.second;
-                nextTrace.push_back(stmt);
+                if (stmt)
+                    nextTrace.push_back(stmt);
                 q.push(make_pair(nextState, nextTrace));
-                nextTrace.pop_back();
+
+                if (stmt)
+                    nextTrace.pop_back();
             }
         }
         else { // leaf node
@@ -321,7 +323,7 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
     return counterExamples;
 }
 
-set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proof) {
+set<Trace> LoopingTreeAutomataVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proof) {
 
     // maps (q_p, B, q_pi) to a set of set of statements
     map<T, set<set<Statement*>>> X;
@@ -474,7 +476,7 @@ set<Trace> ParallelProgramVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *proo
     return {};
 }
 
-void ParallelProgramVerifier::addToInactivityProof(map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof,
+void LoopingTreeAutomataVerifier::addToInactivityProof(map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof,
                                                    T &fromState, const set<Statement *> &S, Statement *statement,
                                                    IntersectionState &toState) {
     const auto& it = inactivityProof.find(fromState);
@@ -508,7 +510,7 @@ void ParallelProgramVerifier::addToInactivityProof(map<T, map<set<Statement *>, 
     }
 }
 
-set<Trace> ParallelProgramVerifier::getCounterExamples(
+set<Trace> LoopingTreeAutomataVerifier::getCounterExamples(
         const map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof, T &initialState) {
 
     set<Trace> counterExamples;
@@ -570,7 +572,7 @@ set<Trace> ParallelProgramVerifier::getCounterExamples(
     return counterExamples;
 }
 
-void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it, const Alphabet &alphabet,
+void LoopingTreeAutomataVerifier::alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it, const Alphabet &alphabet,
                                                            set<Statement *> tempSet, set<set<Statement*>> &powerSetSet) {
     powerSetSet.insert(tempSet);
 
@@ -585,7 +587,7 @@ void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(unordered_set<Sta
     }
 }
 
-void ParallelProgramVerifier::alphabetPowerSetGenerationHelper(set<Statement *>::const_iterator it,
+void LoopingTreeAutomataVerifier::alphabetPowerSetGenerationHelper(set<Statement *>::const_iterator it,
                                                                const set<Statement *> &alphabet,
                                                                set<Statement *> tempSet,
                                                                set<set<Statement *>> &powerSetSet) {

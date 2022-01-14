@@ -1,5 +1,4 @@
-#include "SequentialProgramVerifier.h"
-#include "InterpolantAutomataBuilder.h"
+#include "FiniteAutomataVerifier.h"
 #include "ProofAutomata.h"
 #include "Timer.h"
 
@@ -11,7 +10,7 @@ using namespace weaver;
 using namespace std;
 
 
-void SequentialProgramVerifier::verify() {
+void FiniteAutomataVerifier::verify() {
 
     cout << "Start Verifying..." << endl;
 
@@ -24,7 +23,8 @@ void SequentialProgramVerifier::verify() {
     Timer t1;
     Timer t2;
     double proofCheckTime = 0;
-    double proofConstructionTime = 0;
+    double deterTime = 0;
+    double extendTime = 0;
 
     while (true) {
         ++round;
@@ -36,7 +36,7 @@ void SequentialProgramVerifier::verify() {
         t2.start();
         DFA* Dproof = proof.NFAToDFA(_program->getAlphabet());
         cout << "DProof: " << Dproof->getNumStates() << endl;
-        proofConstructionTime += t2.stop();
+        deterTime += t2.stop();
 
         t1.start();
         Trace errorTrace = proofCheck(cfg, Dproof);
@@ -46,8 +46,10 @@ void SequentialProgramVerifier::verify() {
 
         if (errorTrace.empty()) {
             cout << "Size of CFG: " << cfg->getNumStates() << endl;
+            cout << "Deter Time: " << deterTime << endl;
+            cout << "Extend Time: " << extendTime << endl;
             cout << "Total proof checking time: " << proofCheckTime << endl;
-            cout << "Total proof construction time: " << proofConstructionTime << endl;
+            cout << "Total proof construction time: " << extendTime + deterTime << endl;
             cout << "Number of refinement rounds: " << round << endl;
             cout << "Size of proof: " << proof.getNumStates() << endl;
 
@@ -79,7 +81,7 @@ void SequentialProgramVerifier::verify() {
         // cout << "3. Construct Proof Automata...  " << endl;
         t2.start();
         proof.extend(interpolants, _program->getAlphabet());
-        proofConstructionTime += t2.stop();
+        extendTime += t2.stop();
 
 
         // cout << "Proof size: " << proof.getNumStates() << endl;
@@ -89,7 +91,7 @@ void SequentialProgramVerifier::verify() {
 
 }
 
-Trace SequentialProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
+Trace FiniteAutomataVerifier::proofCheck(NFA* cfg, DFA* proof) {
     // verify the inclusion on the fly
     set<pair<uint32_t, uint32_t>> states;
 
@@ -102,7 +104,7 @@ Trace SequentialProgramVerifier::proofCheck(NFA* cfg, DFA* proof) {
     return errorTrace;
 }
 
-void SequentialProgramVerifier::proofCheckHelper(NFA* cfg, DFA* proof,
+void FiniteAutomataVerifier::proofCheckHelper(NFA* cfg, DFA* proof,
                                                 set<pair<uint32_t, uint32_t>>& states,
                                                 pair<uint32_t, uint32_t> currentState,
                                                 Trace currentTrace,
