@@ -1,18 +1,17 @@
 #pragma once
 
-#include "TheoremProverBase.h"
+#include "SMTSolverBase.h"
 #include "VariableTable.h"
 #include "String.h"
 
 using namespace util;
 
 namespace weaver {
-    class program;
 
-    class MathSAT : public TheoremProverBase {
+    class MathSAT : public SMTSolverBase {
     public:
-        MathSAT(Program* program) :
-            TheoremProverBase(program)
+        MathSAT(VariableTable* table) :
+                SMTSolverBase(table)
             {}
     private:
         string setInterpolationOptions() const override;

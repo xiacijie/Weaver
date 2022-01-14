@@ -1,13 +1,13 @@
 #pragma once
-#include "TheoremProverBase.h"
+#include "VariableTable.h"
+#include "SMTSolverBase.h"
 
 namespace weaver {
-    class Program;
 
-    class Yices : public TheoremProverBase {
+    class Yices : public SMTSolverBase {
     public:
-        Yices(Program* program) :
-            TheoremProverBase(program)
+        Yices(VariableTable* table) :
+            SMTSolverBase(table)
         {}
 
     private:

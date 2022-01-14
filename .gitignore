@@ -4,3 +4,8 @@ build/
 cmake-build-debug/
 /gen/
 .DS_Store
+.idea/Weaver.iml
+.gitignore
+.idea/vcs.xml
+.idea/misc.xml
+.idea/modules.xml

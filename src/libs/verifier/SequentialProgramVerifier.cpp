@@ -1,6 +1,7 @@
 #include "SequentialProgramVerifier.h"
 #include "InterpolantAutomataBuilder.h"
 #include "ProofAutomata.h"
+#include "Timer.h"
 
 #include <iostream>
 #include <queue>
@@ -14,34 +15,56 @@ void SequentialProgramVerifier::verify() {
 
     cout << "Start Verifying..." << endl;
 
-    NFA* cfg = _program->getCFG().NFAEpsilonToNFA(_program->getAlphabet());
+    NFA* cfg = &_program->getCFG();
 
     ProofAutomata proof(_program, _program->getYices());
 
     int round = 0;
 
+    Timer t1;
+    Timer t2;
+    double proofCheckTime = 0;
+    double proofConstructionTime = 0;
+
     while (true) {
-        cout << "!*************  Verification Round: " << ++round << "****************!" << endl;
+        ++round;
+        // cout << "!*************  Verification Round: " << ++round << "****************!" << endl;
+        // cout << proof.getNumStates() << endl;
+        // cout << proof.getProof() << endl;
+        // cout << "1. Get error trace..." << endl;
 
-        cout << "1. Get error trace..." << endl;
-
+        t2.start();
         DFA* Dproof = proof.NFAToDFA(_program->getAlphabet());
+        cout << "DProof: " << Dproof->getNumStates() << endl;
+        proofConstructionTime += t2.stop();
+
+        t1.start();
         Trace errorTrace = proofCheck(cfg, Dproof);
+        proofCheckTime += t1.stop();
+
         delete Dproof;
 
         if (errorTrace.empty()) {
+            cout << "Size of CFG: " << cfg->getNumStates() << endl;
+            cout << "Total proof checking time: " << proofCheckTime << endl;
+            cout << "Total proof construction time: " << proofConstructionTime << endl;
+            cout << "Number of refinement rounds: " << round << endl;
+            cout << "Size of proof: " << proof.getNumStates() << endl;
+
+            cout << proof.getNumStates() << endl;
+            cout << proof.getProof() << endl;
             cout << "***********************************************" << endl;
             cout << "**   End: The program is verified correct!   **" << endl;
             cout << "***********************************************" << endl;
             break;
         }
 
-        cout << "Error Trace:" << endl;
-        for (auto t : errorTrace) {
-            cout << t->toString() << endl;
-        }
+        // cout << "Error Trace:" << endl;
+        // for (auto t : errorTrace) {
+        //     cout << t->toString() << endl;
+        // }
 
-        cout << "2. Do Craig Interpolantion ..." << endl;
+        // cout << "2. Do Craig Interpolantion ..." << endl;
         Interpolants interpolants = _program->getMathSAT()->generateInterpols(errorTrace);
 
         if (interpolants.empty()) {
@@ -53,14 +76,16 @@ void SequentialProgramVerifier::verify() {
             abort();
         }
 
-        cout << "3. Construct Proof Automata...  " << endl;
+        // cout << "3. Construct Proof Automata...  " << endl;
+        t2.start();
         proof.extend(interpolants, _program->getAlphabet());
+        proofConstructionTime += t2.stop();
 
 
-        cout << "Proof size: " << proof.getNumStates() << endl;
+        // cout << "Proof size: " << proof.getNumStates() << endl;
     }
 
-    cout << "Fine" << endl;
+    // cout << "Fine" << endl;
 
 }
 
@@ -97,17 +122,27 @@ void SequentialProgramVerifier::proofCheckHelper(NFA* cfg, DFA* proof,
     if (cfg->hasTransitionFrom(currentState.first)) {
         for (const auto& t : cfg->getTransitions(currentState.first)) {
             Statement* stmt = t.first;
-            if (stmt == nullptr) {
-                cout << "oops" << endl;
-            }
+
             for (const auto& nextState1 : t.second) {
-                uint32_t nextState2 = proof->getTargetState(currentState.second, stmt);
+                uint32_t nextState2;
+
+                if (stmt == nullptr) {
+                    nextState2 = currentState.second;
+                }
+                else {
+                    nextState2 = proof->getTargetState(currentState.second, stmt);
+                }
+
                 auto nextState = make_pair(nextState1, nextState2);
 
                 if (states.find(nextState) == states.end()) {
-                    currentTrace.push_back(stmt);
+                    if (stmt)
+                        currentTrace.push_back(stmt);
+
                     proofCheckHelper(cfg, proof, states, nextState, currentTrace, errorTraceFound, errorTrace);
-                    currentTrace.pop_back();
+                    
+                    if (stmt)
+                        currentTrace.pop_back();
                 }
             }
         }

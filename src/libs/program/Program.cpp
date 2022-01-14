@@ -73,9 +73,9 @@ void Program::init(InputType t, ANTLRInputStream input) {
     cout << _vTable.toString() << endl;
 
     CFGBuilder cfgBuilder(this);
-    cout << "Building CFG..." << endl;
+
     cfgBuilder.build();
-    cout << this->getCFG().toString() << endl;
+    cout << this->getCFG().getNumStates() << endl;
 
     cout << "Alphabet size: " << this->getAlphabet().size() << endl;
 
@@ -142,7 +142,7 @@ Program::~Program() {
 
 void Program::buildDependenceRelation() {
 
-    TheoremProverBase* prover = getMathSAT();
+    SMTSolverBase* prover = getMathSAT();
 
     for (int i = 0; i < _statementPool.size(); i ++) {
         for (int j = i + 1; j < _statementPool.size(); j ++) {

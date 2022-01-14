@@ -27,7 +27,7 @@ bool ParallelProgramVerifier::verify() {
     cout << cfg->toString() << endl;
 
     // start with an empty proof automata
-    auto* proof = new ProofAutomata(program, program->getMathSAT());
+    auto* proof = new ProofAutomata(program, program->getYices());
 
     int round = 1;
     double proofCheckingTime = 0;
@@ -130,7 +130,7 @@ bool ParallelProgramVerifier::verify() {
     }
 
     delete proof;
-    delete cfg;
+
     return correct;
 }
 

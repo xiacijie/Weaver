@@ -1,17 +1,17 @@
 // huh... This is just simple test case
 
 int a = 1;
+int b;
 
 
 parallel(2)
 {
-
-      a++;
+      assume(a == 0);
 
 }
 {
-
-      a--;
+      a++;
+      
 
 }
 

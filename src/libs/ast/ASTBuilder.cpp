@@ -403,9 +403,9 @@ Any ASTBuilder::visitAtomicStatement(WeaverParser::AtomicStatementContext *ctx) 
             if (statementNode.is<ASTNode *>()) {
                 ASTNode *node = statementNode.as<ASTNode *>();
 
-                if (!node->isAssign()) {
-                    throwError("Invalid Atomic Syntax, only Assignment Statement can be in Atomic!");
-                }
+                // if (!node->isAssign()) {
+                //     throwError("Invalid Atomic Syntax, only Assignment Statement can be in Atomic!");
+                // }
 
                 statements.push_back(node);
             }

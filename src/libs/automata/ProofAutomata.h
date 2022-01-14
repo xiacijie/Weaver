@@ -2,14 +2,14 @@
 
 #include "NFA.h"
 #include <unordered_map>
-#include "../theoremprover/TheoremProverBase.h"
+#include "SMTSolverBase.h"
 
 using namespace std;
 
 namespace weaver {
     class ProofAutomata : public NFA {
     public:
-        ProofAutomata(Program* program, TheoremProverBase* prover);
+        ProofAutomata(Program* program, SMTSolverBase* prover);
 
         /**
          * Adding assertions to this proof automata
@@ -17,12 +17,13 @@ namespace weaver {
          * @param alphabet
          */
         void extend(const Interpolants &interpolants, const Alphabet &alphabet);
+        string getProof();
 
     private:
 
         // map the assertions to states
         unordered_map<string , uint32_t> _assertionMap;
-        TheoremProverBase* _prover;
+        SMTSolverBase* _prover;
     };
 }
 

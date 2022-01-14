@@ -4,7 +4,16 @@
 
 using namespace weaver;
 
-ProofAutomata::ProofAutomata(Program *program, TheoremProverBase* prover) {
+string ProofAutomata::getProof() {
+    stringstream ss;
+    for (const auto& it : _assertionMap) {
+        ss << it.first << endl;
+    }
+
+    return ss.str();
+}
+
+ProofAutomata::ProofAutomata(Program *program, SMTSolverBase* prover) {
     _prover = prover;
 
     addState(0);

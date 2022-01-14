@@ -27,8 +27,8 @@ int main(int argc , char *argv[]) {
     Program program = Program();
     program.init(config.fileName);
 
-    SequentialProgramVerifier c(&program);
-    c.verify();
+    // SequentialProgramVerifier c(&program);
+    // c.verify();
 
 	return 0;
 }

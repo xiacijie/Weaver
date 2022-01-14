@@ -1,14 +1,13 @@
 #pragma once
-#include "TheoremProverBase.h"
+#include "SMTSolverBase.h"
 #include "VariableTable.h"
 
 namespace weaver {
-    class Program;
 
-    class SMTInterpol : public TheoremProverBase{
+    class SMTInterpol : public SMTSolverBase{
     public:
-        SMTInterpol(Program* program) :
-                TheoremProverBase(program)
+        SMTInterpol(VariableTable* table) :
+                SMTSolverBase(table)
             {}
 
     private:

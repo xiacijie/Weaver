@@ -27,9 +27,9 @@ namespace weaver {
     public:
         Program() :
             _totalThreads(0),
-            _SMTInterpol(this),
-            _MathSAT(this),
-            _Yices(this)
+            _SMTInterpol(&_vTable),
+            _MathSAT(&_vTable),
+            _Yices(&_vTable)
             {}
 
         ~Program();

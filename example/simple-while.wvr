@@ -4,14 +4,16 @@ int x1,x2;
 assume(x1 == x2 && x1 >=0 );
 
 
-
-while (x1 < 10000) {
-    x1++;
+parallel(2) 
+{
+    while (x1 < 10000) {
+        x1++;
+    }
 }
-
-
-while (x2 < 10000) {
-    x2 = x2 + 1;
+{
+    while (x2 < 10000) {
+        x2 = x2 + 1;
+    }
 }
 
 

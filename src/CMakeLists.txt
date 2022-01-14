@@ -102,22 +102,27 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests
-       test/test.cpp)
+add_executable(testUtil
+       test/testUtil.cpp)
+add_executable(testSMT
+       test/testSMT.cpp)
 
-target_link_libraries(tests PRIVATE
+target_link_libraries(testUtil PRIVATE
         Catch2::Catch2WithMain
-        util
-        automata
-        program
-        ast
-        cfg
-        verifier
+        util)
+
+target_link_libraries(testSMT PRIVATE
+        Catch2::Catch2WithMain
+        antlr4_static
         theoremprover
-       )
+        ast 
+        cfg 
+        automata
+        program 
+        )
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(CTest)
 include(Catch)
-catch_discover_tests(tests [WORKING_DIRECTORY .])
+
 
