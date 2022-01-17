@@ -3,8 +3,4 @@
 int a = 1;
 
 
-while (?) {
-     a++;
-}
-
-assert(a >= 2);
+assert(a >= 1);

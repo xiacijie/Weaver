@@ -75,7 +75,7 @@ void Logger::verbose(const string& m) {
 
 void Logger::print(LogLevel l, Color tc, Color bc, const string& msg) {
     print(l,toANSI(levelDescription[l], tc, bc) + " " +
-        indent(msg));
+    indent(msg));
 }
 
 void Logger::print(LogLevel l, const string& m) {

@@ -1,15 +1,15 @@
 #pragma once
 #include "Program.h"
-#include "TheoremProverBase.h"
 #include <functional>
 #include "Set.h"
 #include "AntiChain.h"
+#include "VerifierBase.h"
 
 namespace weaver {
-    class LoopingTreeAutomataVerifier {
+    class LoopingTreeAutomataVerifier : public VerifierBase {
     public:
         explicit LoopingTreeAutomataVerifier(Program* program):
-            _program(program)
+            VerifierBase(program)
         {}
 
         /**
@@ -17,9 +17,7 @@ namespace weaver {
          * @return true if the program is correct.
          * false if the program is incorrect
          */
-        bool verify();
-
-
+        bool verify() override;
 
     private:
         typedef tuple<uint32_t, bool, set<Statement*>> LTAState;
@@ -48,7 +46,5 @@ namespace weaver {
                                               set<Statement*> tempSet,
                                               set<set<Statement*>>& powerSetSet
         );
-
-        Program* _program;
     };
 }

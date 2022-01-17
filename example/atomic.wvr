@@ -4,7 +4,6 @@ int b;
 atomic {
     assume(a == 3);
     b = 3;
-    
 }
 
 assert(b == 3 && a == 2);

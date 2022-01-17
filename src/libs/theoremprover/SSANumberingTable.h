@@ -17,26 +17,26 @@ namespace weaver {
         bool hasVar(const string& varName);
 
         // declare vars that are initialized by assignment
-        void declareInitializedVar(const string& varName);
+        void declareDefinedVar(const string& varName);
 
         // declare vars that are not initialized
-        void declareUnInitializedVar(const string& varName);
+        void declareUndefinedVar(const string& varName);
 
         pair<string, uint16_t> popVarToDeclare();
-        pair<string, uint16_t> popInitializedVarToDeclare();
-        pair<string, uint16_t> popUnInitializedVarToDeclare();
+        pair<string, uint16_t> popDefinedVarToDeclare();
+        pair<string, uint16_t> popUndefinedVarToDeclare();
 
-        bool hasVarsToDeclare() { return hasInitializedVarsToDeclare() || hasUnInitializedVarsToDeclare();}
-        bool hasInitializedVarsToDeclare() { return !_varsInitializedToBeDeclared.empty(); }
-        bool hasUnInitializedVarsToDeclare() { return !_varsUnIntializedToBeDeclared.empty(); }
+        bool hasVarsToDeclare() { return hasDefinedVarsToDeclare() || hasUndefinedVarsToDeclare();}
+        bool hasDefinedVarsToDeclare() { return !_varsDefinedToBeDeclared.empty(); }
+        bool hasUndefinedVarsToDeclare() { return !_varsUndefinedToBeDeclared.empty(); }
 
         void setNumber(const string& varName, uint16_t i) { _numberTable[varName] = i; } 
     private:
         void incNumber(const string& varName);
         
         unordered_map<string, uint16_t> _numberTable;
-        queue<pair<string, uint16_t>> _varsInitializedToBeDeclared;
-        queue<pair<string, uint16_t>> _varsUnIntializedToBeDeclared;
+        queue<pair<string, uint16_t>> _varsDefinedToBeDeclared;
+        queue<pair<string, uint16_t>> _varsUndefinedToBeDeclared;
 
     };
 }

@@ -1,7 +1,8 @@
 #include "FiniteAutomataVerifier.h"
 #include "ProofAutomata.h"
 #include "Timer.h"
-
+#include "Log.h"
+#include "Config.h"
 #include <iostream>
 #include <queue>
 #include <algorithm>
@@ -9,86 +10,67 @@
 using namespace weaver;
 using namespace std;
 
+extern Logger logger;
+extern Config config;
 
-void FiniteAutomataVerifier::verify() {
+bool FiniteAutomataVerifier::verify() {
+    logger.info("Start Verifying with Finite Automata...");
 
-    cout << "Start Verifying..." << endl;
+    bool correct = false;
 
     NFA* cfg = &_program->getCFG();
 
-    ProofAutomata proof(_program, _program->getYices());
-
-    int round = 0;
-
-    Timer t1;
-    Timer t2;
-    double proofCheckTime = 0;
-    double deterTime = 0;
-    double extendTime = 0;
+    Timer timer;
 
     while (true) {
-        ++round;
-        // cout << "!*************  Verification Round: " << ++round << "****************!" << endl;
-        // cout << proof.getNumStates() << endl;
-        // cout << proof.getProof() << endl;
-        // cout << "1. Get error trace..." << endl;
+        logger.info("\n");
+        logger.info(getRefinementRoundHeader());
+        logger.info(getProofSizeHeader());
+        
+        logger.info(getDeterProofHeader());
+        timer.start();        
+        DFA* Dproof = _proof.NFAToDFA(_program->getAlphabet());
+        _proofDeterTime += timer.stop();
 
-        t2.start();
-        DFA* Dproof = proof.NFAToDFA(_program->getAlphabet());
-        cout << "DProof: " << Dproof->getNumStates() << endl;
-        deterTime += t2.stop();
-
-        t1.start();
+        logger.info(getErrorTraceHeader());
+        timer.start();
         Trace errorTrace = proofCheck(cfg, Dproof);
-        proofCheckTime += t1.stop();
+        _proofCheckingTime += timer.stop();
 
         delete Dproof;
 
-        if (errorTrace.empty()) {
-            cout << "Size of CFG: " << cfg->getNumStates() << endl;
-            cout << "Deter Time: " << deterTime << endl;
-            cout << "Extend Time: " << extendTime << endl;
-            cout << "Total proof checking time: " << proofCheckTime << endl;
-            cout << "Total proof construction time: " << extendTime + deterTime << endl;
-            cout << "Number of refinement rounds: " << round << endl;
-            cout << "Size of proof: " << proof.getNumStates() << endl;
-
-            cout << proof.getNumStates() << endl;
-            cout << proof.getProof() << endl;
-            cout << "***********************************************" << endl;
-            cout << "**   End: The program is verified correct!   **" << endl;
-            cout << "***********************************************" << endl;
+        if (errorTrace.empty()) { // the program is correct
+            logger.info("\n");
+            logger.info(getVerificationSucessData());
+            correct = true;
             break;
         }
 
-        // cout << "Error Trace:" << endl;
-        // for (auto t : errorTrace) {
-        //     cout << t->toString() << endl;
-        // }
+        _refinementRound++;
 
-        // cout << "2. Do Craig Interpolantion ..." << endl;
-        Interpolants interpolants = _program->getMathSAT()->generateInterpols(errorTrace);
+        logger.info(getErrorTraceString(errorTrace));
+
+        logger.info(getGenInterpolHeader());
+        
+        timer.start();
+        Interpolants interpolants = _interpolSolver->generateInterpols(errorTrace);
+        _interpolGenTime += timer.stop();
 
         if (interpolants.empty()) {
-            cerr << "This Program is Incorrect!" << endl;
-            cerr << "A valid counterexample trace:" << endl << endl;
-            for (auto t : errorTrace) {
-                cerr << t->toString() << endl;
-            }
+            logger.info("\n");
+            logger.warn(getVerificationFailureInfo(errorTrace));
             abort();
         }
 
-        // cout << "3. Construct Proof Automata...  " << endl;
-        t2.start();
-        proof.extend(interpolants, _program->getAlphabet());
-        extendTime += t2.stop();
+        logger.info(getInterpolantsString(interpolants));
 
-
-        // cout << "Proof size: " << proof.getNumStates() << endl;
+        logger.info(getGrowProofHeader());
+        timer.start();
+        _proof.extend(interpolants, _program->getAlphabet());
+        _proofExtendTime += timer.stop();
     }
 
-    // cout << "Fine" << endl;
-
+    return correct;
 }
 
 Trace FiniteAutomataVerifier::proofCheck(NFA* cfg, DFA* proof) {

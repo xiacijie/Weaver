@@ -9,6 +9,7 @@
 #include "MathSAT.h"
 #include "Yices.h"
 #include "SMTInterpol.h"
+#include "Config.h"
 
 using namespace std;
 

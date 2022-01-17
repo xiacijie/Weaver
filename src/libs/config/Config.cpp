@@ -19,7 +19,8 @@ Config::Config(int argc, char *argv[]) {
     setDefaults();
 
     // Parse command line options:
-    while (opt = getopt(argc, argv, "f:v:a:l:")) {
+    while (opt = getopt(argc, argv, "f:v:a:I:i:h:l:")) {
+        
         switch(opt) {
             case 'f':
                 parameter = optarg;
@@ -31,6 +32,10 @@ Config::Config(int argc, char *argv[]) {
                     verifier = VerifierType::lta;
                 } else if (parameter == "normal") {
                     verifier = VerifierType::normal;
+                }
+                else {
+                    logger.error(helpMessage);
+                    exit(1);
                 }
                 continue;
             case 'l':
@@ -54,20 +59,73 @@ Config::Config(int argc, char *argv[]) {
                 }
                 continue;
             case 'a':
+                parameter = optarg;
                 if (verifier != VerifierType::lta) {
                     logger.error("Only LTA can use antiChain option!");
                     exit(1);
                 }
               
-                parameter = optarg;
                 if (parameter == "true") {
                     antiChain = true;
                 }
-                else {
+                else if (parameter == "false") {
                     antiChain = false;
+                }
+                else {
+                    logger.error(helpMessage);
+                    exit(1);
                 }
                 continue;
                 
+            case 'I':
+                parameter = optarg;
+                if (parameter == "smtinterpol") {
+                    interpolantSMTSolver = SMTSolverType::smtinterpol;
+                }
+                else if (parameter == "mathsat") {
+                    interpolantSMTSolver = SMTSolverType::mathsat;
+                }
+                else {
+                    logger.error(helpMessage);
+                    exit(1);
+                }
+                continue;
+
+            case 'i':
+                parameter = optarg;
+                if (parameter == "smtinterpol") {
+                    independenceSMTSolver = SMTSolverType::smtinterpol;
+                }
+                else if (parameter == "mathsat") {
+                    independenceSMTSolver = SMTSolverType::mathsat;
+                }
+                else if (parameter == "yices") {
+                    independenceSMTSolver = SMTSolverType::yices;
+                }
+                else {
+                    logger.error(helpMessage);
+                    exit(1);
+                }
+                continue;
+
+            case 'h':
+                parameter = optarg;
+                if (parameter == "smtinterpol") {
+                    hoareTripleSMTSolver = SMTSolverType::smtinterpol;
+                }
+                else if (parameter == "mathsat") {
+                    hoareTripleSMTSolver = SMTSolverType::mathsat;
+                }
+                else if (parameter == "yices") {
+                    hoareTripleSMTSolver = SMTSolverType::yices;
+                }
+                else {
+                    logger.error(helpMessage);
+                    exit(1);
+                }
+
+                continue;
+
             default:
                 logger.error(helpMessage);
                 exit(1);
@@ -118,14 +176,42 @@ string Config::toString() {
             l = "";
     }
 
+    string I = smtSolverTypeToString(interpolantSMTSolver);
+    string i = smtSolverTypeToString(independenceSMTSolver);
+    string h = smtSolverTypeToString(hoareTripleSMTSolver);
+
+
     return "VERIFIER:       " + v +
            "\nLOG LEVEL:      " + l +
+           "\nINTERPOL SMT SOLVER:      " + I + 
+           "\nINDEP SMT SOLVER:      " + i + 
+           "\nHOARE SMT SOLVER:      " + h + 
            "\nINPUT FILE:     " + fileName;
 }
 
+
+
 void Config::setDefaults() {
     // Set defaults:
-    verifier = VerifierType::normal;
+    verifier = VerifierType::lta;
+    antiChain = true;
+    interpolantSMTSolver = SMTSolverType::mathsat;
+    independenceSMTSolver = SMTSolverType::mathsat;
+    hoareTripleSMTSolver = SMTSolverType::yices;
     logLevel = LogLevel::info;
     fileName = "";
+}
+
+string Config::smtSolverTypeToString(SMTSolverType type) {
+    switch (type)
+    {
+    case SMTSolverType::smtinterpol:
+        return "smtinterpol";
+    case SMTSolverType::mathsat:
+        return "mathsat";
+    case SMTSolverType::yices:
+        return "yices";
+    default:
+        return "";
+    }
 }

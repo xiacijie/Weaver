@@ -4,121 +4,84 @@
 #include "Yices.h"
 #include "ProofAutomata.h"
 #include "Config.h"
+#include "Timer.h"
 
-#define COUNTER_EXAMPLE_SELECTION 0
 
 using namespace weaver;
 using namespace std;
 using namespace util;
 
 extern Config config;
+extern Logger logger;
 
 bool LoopingTreeAutomataVerifier::verify() {
-    cout << "Start verifying... " << endl;
-    bool correct = false;
-    Program* program = _program;
 
-    // eliminate those epsilon transitions
+    logger.info("Start verifying with Looping Tree Automata...");
+
+    bool correct = false;
+
+    Program* program = _program;
     NFA* cfg = &program->getCFG();
 
-    // start with an empty proof automata
-    ProofAutomata proof(program, program->getYices());
-
-    int round = 1;
+    Timer timer;
 
     while (true) {
-        cout << "=========== Round: " << round++ << " ==============" << endl;
-        cout << "Proof Size : " << proof.getNumStates() << endl;
+        logger.info("\n");
+        logger.info(getRefinementRoundHeader());
+        logger.info(getProofSizeHeader());
 
-        cout << "Convert Proof to DFA..." << endl;
-        DFA* DProof = proof.NFAToDFA(program->getAlphabet());
+        logger.info(getDeterProofHeader());
+        timer.start();
+        DFA* DProof = _proof.NFAToDFA(program->getAlphabet());
+        _proofDeterTime += timer.stop();
 
-        cout << "Getting Error Trace..." << endl;
+        logger.info(getErrorTraceHeader());
         
+        timer.start();
         set<Trace> errorTraceSet;
-
         if (config.antiChain) {
             errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
         }
         else {
             errorTraceSet = proofCheck(cfg, DProof);
         }
+        _proofCheckingTime += timer.stop();
 
         delete DProof;
 
         if (!errorTraceSet.empty()) {
-            cout << "Get a set of error traces..." << endl;
-            if (COUNTER_EXAMPLE_SELECTION == 0) {
-                const auto& trace = *errorTraceSet.begin();
-                for (const auto& t: trace) {
-                    cout << t->toString() << " || ";
-                }
-                cout << endl;
+
+            // currently we only choose the first counterexample from a set of error traces
+            const auto& trace = *errorTraceSet.begin();
+                logger.info(getErrorTraceString(trace));
 
                 // This trace must be non-empty
-                Interpolants interpols = _program->getMathSAT()->generateInterpols(trace);
+                logger.info(getGenInterpolHeader());
+
+                timer.start();
+                Interpolants interpols = _interpolSolver->generateInterpols(trace);
+                _interpolGenTime += timer.stop();
+
                 if (interpols.empty()) {
-                    cerr << "This Program is Incorrect!" << endl;
-                    cerr << "A valid counterexample trace:" << endl << endl;
-                    for (auto t : trace) {
-                        cerr << t->toString() << endl;
-                    }
-
+                    logger.info("\n");
+                    logger.warn(getVerificationFailureInfo(trace));
                     break;
                 }
 
-                cout << "Interpolants: ";
-                for (const auto& intpl: interpols) {
-                    cout << intpl << endl;
-                }
-                cout << endl;
+                logger.info(getInterpolantsString(interpols));
 
-                proof.extend(interpols, program->getAlphabet());
-            }
-            else  {
-                bool anyIncorrectTrace = false;
-                int i = 1;
-                for (const auto& trace : errorTraceSet) {
-                    cout << i++ << ". ";
-                    for (const auto& t: trace) {
-                        cout << t->toString() << " || ";
-                    }
-                    cout << endl;
+                logger.info(getGrowProofHeader());
 
-                    // This trace must be non-empty
-                    Interpolants interpols = _program->getMathSAT()->generateInterpols(trace);
-                    if (interpols.empty()) {
-                        cerr << "This Program is Incorrect!" << endl;
-                        cerr << "A valid counterexample trace:" << endl << endl;
-                        for (auto t : trace) {
-                            cerr << t->toString() << endl;
-                        }
+                timer.start();
+                _proof.extend(interpols, program->getAlphabet());
+                _proofExtendTime += timer.stop();
 
-                        anyIncorrectTrace = true;
-                        break;
-                    }
-
-                    cout << "Interpolants: ";
-                    for (const auto& intpl: interpols) {
-                        cout << intpl << endl;
-                    }
-                    cout << endl;
-
-                    proof.extend(interpols, program->getAlphabet());
-                }
-
-                if (anyIncorrectTrace) {
-                    break;
-                }
-            }
-
+                _refinementRound++;
 
         }
-        else {
-            cout << "***********************************************" << endl;
-            cout << "**   End: The program is verified correct!   **" << endl;
-            cout << "***********************************************" << endl;
-
+        else { // the program is correct
+            logger.info("\n");
+            logger.info(getVerificationSucessData());
             correct = true;
             break;
         }
@@ -169,7 +132,7 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheck(NFA* cfg, DFA* proof) {
     // Then we compute backward, enlarging the inactive states until we find we initial state in it
     // or the set does not grow
     while (notFixed) {
-        cout << inactiveStates.size() << endl;
+
         notFixed = false;
         for (const auto& s1 : cfg->getStates()) {
 
@@ -263,7 +226,6 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheck(NFA* cfg, DFA* proof) {
 
                         // initial state is inactive
                         if (cfg->isStartState(s1) && sleepSet.empty() && proof->isStartState(s2)) {
-                            cout << "Initial State is inactive" << endl;
                             LTAState initialLTAState(s1, false, {});
                             IntersectionState initialIntersectionState(initialLTAState, s2);
 
@@ -370,7 +332,6 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *
             numStates += x.second.size();
         }
 
-        cout << "States: " << numStates << endl;
         fixed = true;
         
         for (const auto& s1: cfg->getStates()) {

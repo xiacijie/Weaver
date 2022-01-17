@@ -2,6 +2,7 @@
 #include "Program.h"
 #include "NFA.h"
 #include "SMTInterpol.h"
+#include "VerifierBase.h"
 #include <vector>
 
 using namespace std;
@@ -10,13 +11,13 @@ namespace weaver {
     /**
      * The program verifier using finite automata
      */
-    class FiniteAutomataVerifier {
+    class FiniteAutomataVerifier : public VerifierBase {
     public:
         FiniteAutomataVerifier(Program* program) :
-            _program(program)
+            VerifierBase(program)
             {}
 
-        void verify();
+        bool verify() override;
     private:
         Trace proofCheck(NFA* cfg, DFA* proof);
         void proofCheckHelper(NFA* cfg, DFA* proof, 
@@ -25,8 +26,6 @@ namespace weaver {
                                 Trace currentTrace,
                                 bool& errorTraceFound,
                                 Trace& errorTrace);
-
-        Program* _program;
     };
 }
 

@@ -24,41 +24,41 @@ uint16_t SSANumberingTable::getNumber(const string& varName) {
 }
 
 
-void SSANumberingTable::declareInitializedVar(const string& varName) {
+void SSANumberingTable::declareDefinedVar(const string& varName) {
     incNumber(varName);
-    _varsInitializedToBeDeclared.push(make_pair(varName, getNumber(varName)));
+    _varsDefinedToBeDeclared.push(make_pair(varName, getNumber(varName)));
 }
 
-void SSANumberingTable::declareUnInitializedVar(const string& varName) {
+void SSANumberingTable::declareUndefinedVar(const string& varName) {
     incNumber(varName);
-    _varsUnIntializedToBeDeclared.push(make_pair(varName, getNumber(varName)));
+    _varsUndefinedToBeDeclared.push(make_pair(varName, getNumber(varName)));
 }
 
 pair<string, uint16_t> SSANumberingTable::popVarToDeclare() {
     assert(hasVarsToDeclare() && "Error!");
-    if (hasInitializedVarsToDeclare()) {
-        return popInitializedVarToDeclare();
+    if (hasDefinedVarsToDeclare()) {
+        return popDefinedVarToDeclare();
     }
 
-    if (hasUnInitializedVarsToDeclare()) {
-        return popUnInitializedVarToDeclare();
+    if (hasUndefinedVarsToDeclare()) {
+        return popUndefinedVarToDeclare();
     }
 }
 
-pair<string, uint16_t> SSANumberingTable::popInitializedVarToDeclare() {
-    assert(hasInitializedVarsToDeclare() && "Error!");
+pair<string, uint16_t> SSANumberingTable::popDefinedVarToDeclare() {
+    assert(hasDefinedVarsToDeclare() && "Error!");
 
-    auto p = _varsInitializedToBeDeclared.front();
-    _varsInitializedToBeDeclared.pop();
+    auto p = _varsDefinedToBeDeclared.front();
+    _varsDefinedToBeDeclared.pop();
 
     return p;
 }
 
-pair<string, uint16_t> SSANumberingTable::popUnInitializedVarToDeclare() {
-    assert(hasUnInitializedVarsToDeclare() && "Error!");
+pair<string, uint16_t> SSANumberingTable::popUndefinedVarToDeclare() {
+    assert(hasUndefinedVarsToDeclare() && "Error!");
 
-    auto p = _varsUnIntializedToBeDeclared.front();
-    _varsUnIntializedToBeDeclared.pop();
+    auto p = _varsUndefinedToBeDeclared.front();
+    _varsUndefinedToBeDeclared.pop();
 
     return p;
 }

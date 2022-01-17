@@ -17,13 +17,13 @@ using namespace antlr4;
 using namespace antlrcpp;
 
 extern Logger logger;
-extern MathSAT mathSat;
+extern Config config;
 
 void Program::init(string fileName) {
 
     if (!(fileName.substr(fileName.find_last_of(".") + 1) == "wvr")) {
         logger.error("Currently only '.wvr' files are supported.");
-        exit(1); 
+        abort(); 
     } 
 
     InputType t = wvr; 
@@ -32,24 +32,25 @@ void Program::init(string fileName) {
     stream.open(fileName);
 
     if (!stream.good()) {
-        throw invalid_argument( "Cannot open file {}" + fileName );
+        logger.error("Cannot open file {}" + fileName);
+        abort();
     }
 
     ANTLRInputStream input(stream);
-	this->init(t, input); 
-
+	init(t, input); 
 }
 
 void Program::init(InputType t, string contents) {
 
     ANTLRInputStream input(contents);
-	this->init(t, input); 
+	init(t, input); 
 }
 
 void Program::init(InputType t, ANTLRInputStream input) {
 
     if (t != wvr) {
-        throw invalid_argument( "Currently only '.wvr' files are supported.");
+        logger.error( "Currently only '.wvr' files are supported.");
+        abort();
     }
 
     WeaverLexer lexer(&input);
@@ -62,28 +63,33 @@ void Program::init(InputType t, ANTLRInputStream input) {
 	WeaverParser::ProgramContext* tree = parser.program();
 
     if (parser.getNumberOfSyntaxErrors() > 0) {
-        cerr << "Weaver: Syntax Error!\n" << endl;
+        logger.error("Weaver: Syntax Error!\n");
         abort();
     }
 
     ASTBuilder builder(this, tree);
     builder.build();
 
-    cout << _ast.toString() << endl;
-    cout << _vTable.toString() << endl;
+    logger.debug("# AST:\n");
+    logger.debug(_ast.toString() + "\n");
 
+    logger.debug("# Variable Table: \n");
+    logger.debug(_vTable.toString() + "\n");
+
+    logger.debug("# Alphabet Size: " + to_string(getAlphabet().size()) + "\n");
+    
     CFGBuilder cfgBuilder(this);
-
     cfgBuilder.build();
-    cout << this->getCFG().getNumStates() << endl;
-
-    cout << "Alphabet size: " << this->getAlphabet().size() << endl;
-
-    this->buildDependenceRelation();
-
-    cout << this->independentStatementsToString() << endl;
-
-    cout << this->dependentStatementsToString() << endl;
+    
+    logger.debug("# Control Flow Automata: \n");
+    logger.debug(_cfg.toString() + "\n");
+    
+    // only looping tree automata needs the independence relations
+    if (config.verifier == VerifierType::lta) {
+        buildDependenceRelation();
+        logger.debug(independentStatementsToString() + "\n");
+        logger.debug(dependentStatementsToString() + "\n");
+    }
 }
 
 const unordered_set<Statement*>& Program::getStatementsByThread(uint16_t threadID) const {
@@ -142,7 +148,17 @@ Program::~Program() {
 
 void Program::buildDependenceRelation() {
 
-    SMTSolverBase* prover = getMathSAT();
+    SMTSolverBase* prover = nullptr;
+
+    if (config.independenceSMTSolver == SMTSolverType::smtinterpol) {
+        prover = new SMTInterpol(&getVariableTable());
+    }
+    else if (config.independenceSMTSolver == SMTSolverType::mathsat) {
+        prover = new MathSAT(&getVariableTable());
+    }
+    else {
+        prover = new Yices(&getVariableTable());
+    }
 
     for (int i = 0; i < _statementPool.size(); i ++) {
         for (int j = i + 1; j < _statementPool.size(); j ++) {
@@ -159,6 +175,8 @@ void Program::buildDependenceRelation() {
 
         }
     }
+
+    delete prover;
 }
 
 ASTNode* Program::getEquivalentASTNode(ASTNode *node) {

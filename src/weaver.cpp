@@ -13,12 +13,12 @@ extern Config config;
 extern Logger logger;
 
 int main(int argc , char *argv[]) {
-    config = Config(argc, argv);
     logger = Logger(config.logLevel);
-
+    config = Config(argc, argv);
+    
     if (config.fileName.empty()) {
         logger.error(helpMessage);
-        exit(1);
+        abort();
     }
 
     logger.info("Running Weaver with the following settings:\n" +

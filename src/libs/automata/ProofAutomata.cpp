@@ -1,8 +1,11 @@
 #include "ProofAutomata.h"
-#include "../theoremprover/SMTInterpol.h"
-#include "../program/Program.h"
+#include "SMTInterpol.h"
+#include "Program.h"
+#include "Config.h"
 
 using namespace weaver;
+
+extern Config config;
 
 string ProofAutomata::getProof() {
     stringstream ss;
@@ -13,8 +16,17 @@ string ProofAutomata::getProof() {
     return ss.str();
 }
 
-ProofAutomata::ProofAutomata(Program *program, SMTSolverBase* prover) {
-    _prover = prover;
+ProofAutomata::ProofAutomata(const Alphabet &alphabet, VariableTable* table) {
+
+    if (config.hoareTripleSMTSolver == SMTSolverType::mathsat) {
+        _solver = new MathSAT(table);
+    }
+    else if (config.hoareTripleSMTSolver == SMTSolverType::yices) {
+        _solver = new Yices(table);
+    }
+    else {
+        _solver = new SMTInterpol(table);
+    }
 
     addState(0);
     _assertionMap["false"] = 0;
@@ -30,9 +42,9 @@ ProofAutomata::ProofAutomata(Program *program, SMTSolverBase* prover) {
         for (const auto& it2 : _assertionMap) {
             const string& assertion2 = it2.first;
             uint32_t state2 = it2.second;
-            for (const auto& stmt : program->getAlphabet()) {
+            for (const auto& stmt : alphabet) {
 
-                bool valid = _prover->checkHoareTripe(assertion1, stmt, assertion2);
+                bool valid = _solver->checkHoareTripe(assertion1, stmt, assertion2);
                 if (valid) {
                     addTransition(state1, stmt, state2);
                 }
@@ -56,19 +68,19 @@ void ProofAutomata::extend(const Interpolants &interpolants, const Alphabet &alp
                 for (const auto& stmt : alphabet) {
 
                     if (assertion != interpol) {
-                        bool valid =  _prover->checkHoareTripe(interpol, stmt, assertion);
+                        bool valid =  _solver->checkHoareTripe(interpol, stmt, assertion);
                         if (valid) {
                             addTransition(newState,stmt, state);
                         }
 
-                        valid = _prover->checkHoareTripe(assertion, stmt, interpol);
+                        valid = _solver->checkHoareTripe(assertion, stmt, interpol);
 
                         if (valid) {
                             addTransition(state, stmt, newState);
                         }
                     }
                     else {
-                        bool valid = _prover->checkHoareTripe(interpol, stmt, interpol);
+                        bool valid = _solver->checkHoareTripe(interpol, stmt, interpol);
                         if (valid) {
                             addTransition(newState, stmt, newState);
                         }

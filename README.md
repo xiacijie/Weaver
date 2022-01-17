@@ -17,14 +17,20 @@ The binaries for those three SMT solvers are provided under the `src/bin` direct
 4. `cd build`
 5. `cmake ../src`
 6. `make`
-7. `./weaver -f ../example/test.wvr -v lta -a true -l none`
+7. `./weaver -f ../example/test.wvr`
 
 ## Argument options:
-1. `-f` should take the input file to verify
+1. `-f` should take the input file to verify. This must be specified.
 2. `-v` takes either `normal` or `lta`, which means the verify algorithm will use determinstic finite automata or looping tree automata to verify the program.
 3. `-a` takes either `true` or `false`, which means whether to use the antichain algorithms for the looping tree automata proof checking.
-4. `-l` takes `none/error/warn/info/debug/verbose` 
+4. `-I` takes `<smtinterpol/mathsat>`. This specifies the SMT solver used for craig interpolation.
+5. `-i` takes `<smtinterpol/mathsat/yices>`. This specifies the SMT solver used for checking indepence relations of statements.
+6. '-h' takes `<smtinterpol/mathsat/yices>`. This specifies the SMT solver used for checking the validity of hoare triples during proof construction.
+7. `-l` takes `none/error/warn/info/debug/verbose` 
 
+## Default options:
+
+If no options other that `-f` is specified, Weaver uses `lta` and the antichain algorithm for proof checking. `mathsat` for craig interpolations and independence relation checking. `yices` for checking validity of hoare tripes. `info` for the log level. 
 
 ## Note:
 This project uses ANTLR4 as the front end parsing framework. If any error regarding ANTLR4 happens, visit https://www.antlr.org for solution. 

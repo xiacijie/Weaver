@@ -9,7 +9,7 @@ string SMTSolverBase::getFormula(ASTNode* node, SSANumberingTable& table, bool i
     // Need to update the ssa numbering table
     if (isLeftValue) {
         string varName = node->getIdName();
-        table.declareInitializedVar(varName);
+        table.declareDefinedVar(varName);
     }
 
     if (node->isNoAction()) {
@@ -43,7 +43,7 @@ string SMTSolverBase::getFormula(ASTNode* node, SSANumberingTable& table, bool i
     if (node->isId()) { // get the ssa version of this var
         string varName = node->getIdName();
         if (!table.hasVar(varName)) {
-            table.declareUnInitializedVar(varName);
+            table.declareUndefinedVar(varName);
         }
 
         return getSSAName(varName, table.getNumber(varName));
@@ -207,8 +207,8 @@ bool SMTSolverBase::checkIndependenceRelation(Statement* s1, Statement* s2) cons
 
     // vars that are not init by assignment statements should be assert equal
     vector<pair<string, uint16_t>> varsNotInitialized1;
-    while (table1.hasUnInitializedVarsToDeclare()) {
-        auto v = table1.popUnInitializedVarToDeclare();
+    while (table1.hasUndefinedVarsToDeclare()) {
+        auto v = table1.popUndefinedVarToDeclare();
         SMTFile << getVarDeclaration(getSSAName(v.first,v.second), _vTable->getVarType(v.first));
         SMTFile << endl;
         varsNotInitialized1.push_back(v);
@@ -216,8 +216,8 @@ bool SMTSolverBase::checkIndependenceRelation(Statement* s1, Statement* s2) cons
 
     // initialized vars' largest version number
     unordered_map<string, uint16_t> varsInitialized1;
-    while (table1.hasInitializedVarsToDeclare()) {
-        auto v = table1.popInitializedVarToDeclare();
+    while (table1.hasDefinedVarsToDeclare()) {
+        auto v = table1.popDefinedVarToDeclare();
         SMTFile << getVarDeclaration(getSSAName(v.first, v.second), _vTable->getVarType(v.first));
         SMTFile << endl;
 
@@ -237,8 +237,8 @@ bool SMTSolverBase::checkIndependenceRelation(Statement* s1, Statement* s2) cons
     getFormula(s1->getNode(), temp);
 
     vector<pair<string, uint16_t>> varsNotInitialized2;
-    while (temp.hasUnInitializedVarsToDeclare()) {
-        auto v = temp.popUnInitializedVarToDeclare();
+    while (temp.hasUndefinedVarsToDeclare()) {
+        auto v = temp.popUndefinedVarToDeclare();
         uint16_t versionNumber = table1.getNumber(v.first) + 1;
         table2.setNumber(v.first, versionNumber);
         SMTFile << getVarDeclaration(getSSAName(v.first, versionNumber), _vTable->getVarType(v.first));
@@ -247,8 +247,8 @@ bool SMTSolverBase::checkIndependenceRelation(Statement* s1, Statement* s2) cons
     }
 
     unordered_map<string, uint16_t> varsInitialized2;
-    while (temp.hasInitializedVarsToDeclare()) {
-        auto v = temp.popInitializedVarToDeclare();
+    while (temp.hasDefinedVarsToDeclare()) {
+        auto v = temp.popDefinedVarToDeclare();
         uint16_t versionNumber = table1.getNumber(v.first) + v.second + 1;
         
         if (!table2.hasVar(v.first)) {
@@ -269,7 +269,7 @@ bool SMTSolverBase::checkIndependenceRelation(Statement* s1, Statement* s2) cons
     string s2Formula2 = getFormula(s2->getNode(), table2);
     string s1Formula2 = getFormula(s1->getNode(), table2);
 
-    assert(!table2.hasUnInitializedVarsToDeclare() && "Should not have uninitialized vars");
+    assert(!table2.hasUndefinedVarsToDeclare() && "Should not have uninitialized vars");
 
     // construct the SMT formulas
     SMTFile << getAssert(getAndFormula(s1Formula1, s2Formula1)) << endl;
@@ -367,7 +367,7 @@ bool SMTSolverBase::checkHoareTripe(const string &pre, Statement *statement, con
                 // if the part is a variable
                 if (_vTable->isVarDeclared(part)) {
                     if (!table.hasVar(part)) {
-                        table.declareUnInitializedVar(part);
+                        table.declareUndefinedVar(part);
                     }
 
                     if (endIndex == length - 1 && currentChar != ')') {
@@ -447,7 +447,7 @@ bool SMTSolverBase::checkHoareTripe(const string &pre, Statement *statement, con
                         endIndex += number.size() + 1;
                     }
                     else {
-                        table.declareUnInitializedVar(part);
+                        table.declareUndefinedVar(part);
 
                         if (endIndex == length - 1 && currentChar != ')') {
                             postCondition.insert(endIndex+1, SSA_DELIMITER + to_string(0));
