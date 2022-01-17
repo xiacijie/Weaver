@@ -36,7 +36,7 @@ bool LoopingTreeAutomataVerifier::verify() {
 
         cout << "Getting Error Trace..." << endl;
 
-        auto errorTraceSet = proofCheck(cfg, DProof);
+        auto errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
 
         delete DProof;
 
@@ -389,44 +389,66 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *
 
                         for (const auto& targetState: targetStates) {
                             uint32_t s1_next = targetState;
-                            uint32_t s2_next = proof->getTargetState(s2, statement);
+                            uint32_t s2_next;
+
+                            if (statement == nullptr) {
+                                s2_next = s2;
+                            }
+                            else {
+                                s2_next = proof->getTargetState(s2, statement);
+                            }
 
                             T next_t(s1_next, false, s2_next);
 
                             // transit into an inactive state
                             if (X.find(next_t) != X.end()) {
                                 for (const auto& S : X[next_t]) {
-                                    set<Statement*> R_a;
-                                    for (const auto & set : R) {
-                                        if (set->find(statement) != set->end()) {
-                                            break;
-                                        }
-                                        else {
-                                            R_a.insert(set->begin(), set->end());
-                                        }
-                                    }
 
-                                    const auto& D_a_u = _program->getDependentStatements(statement);
-                                    set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
-                                    set<Statement*> R_a_minus_D_a;
-                                    setDifference(R_a, D_a, R_a_minus_D_a);
-                                    bool include = setInclusion(R_a_minus_D_a, S);
-
-                                    if (include) {
-                                        set<Statement*> S_union_D_a;
-                                        setUnion(S, D_a, S_union_D_a);
-                                        set<Statement*> S_union_D_a_minus_a;
-                                        setDifference(S_union_D_a, {statement}, S_union_D_a_minus_a);
+                                    if (statement == nullptr) {
                                         set<set<Statement*>> temp;
-                                        antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
+                                        antiChainJoin(X_join, {S}, temp);
                                         X_join.clear();
                                         X_join.insert(temp.begin(), temp.end());
-                                        
+
+                    
                                         LTAState nextLTAState(s1_next, false, S);
                                         IntersectionState nextIntersectionState(nextLTAState, s2_next);
-                                        addToInactivityProof(inactivityProof, t, S_union_D_a_minus_a, statement, nextIntersectionState);
+                                        addToInactivityProof(inactivityProof, t, S, statement, nextIntersectionState);
                                     }
+                                    else {
+                                        set<Statement*> R_a;
+                                        for (const auto & set : R) {
+                                            if (set->find(statement) != set->end()) {
+                                                break;
+                                            }
+                                            else {
+                                                R_a.insert(set->begin(), set->end());
+                                            }
+                                        }
 
+                                        const auto& D_a_u = _program->getDependentStatements(statement);
+                                        set<Statement*> D_a(D_a_u.begin(), D_a_u.end());
+                                        set<Statement*> R_a_minus_D_a;
+                                        setDifference(R_a, D_a, R_a_minus_D_a);
+                                        bool include = setInclusion(R_a_minus_D_a, S);
+
+                                        if (include) {
+                                            set<Statement*> S_union_D_a;
+                                            setUnion(S, D_a, S_union_D_a);
+                                            set<Statement*> S_union_D_a_minus_a;
+                                            setDifference(S_union_D_a, {statement}, S_union_D_a_minus_a);
+                                            set<set<Statement*>> temp;
+                                            antiChainJoin(X_join, {S_union_D_a_minus_a}, temp);
+                                            X_join.clear();
+                                            X_join.insert(temp.begin(), temp.end());
+                                            
+                                            s2_next = proof->getTargetState(s2, statement);
+
+                                            LTAState nextLTAState(s1_next, false, S);
+                                            IntersectionState nextIntersectionState(nextLTAState, s2_next);
+                                            addToInactivityProof(inactivityProof, t, S_union_D_a_minus_a, statement, nextIntersectionState);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -553,9 +575,14 @@ set<Trace> LoopingTreeAutomataVerifier::getCounterExamples(
                     for (const auto& t: it2.second) {
                         Statement* stmt = t.first;
                         const IntersectionState& nextState = t.second;
-                        nextTrace.push_back(stmt);
+                        
+                        if (stmt)
+                            nextTrace.push_back(stmt);
+                        
                         q.push(make_pair(nextState, nextTrace));
-                        nextTrace.pop_back();
+                        
+                        if (stmt)
+                            nextTrace.pop_back();
                     }
                 }
             }       

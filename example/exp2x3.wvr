@@ -1,0 +1,27 @@
+int x1,x2,x3,x4,n;
+
+assume(x1 == x2 && x1 > 0 && x3 == x4 && x3 > 0);
+
+parallel(4)
+{
+    while (x1 < n) {
+        x1 = x1 + x1;
+    }
+}
+{
+    while (x2 < n) {
+        x2 = x2 + x2;
+    }
+}
+{
+    while (x3 < n) {
+        x3 = x3 + x3;
+    }
+}
+{
+    while (x4 < n) {
+        x4 = x4 + x4;
+    }
+}
+
+assert(x1 == x2 && x3 == x4);

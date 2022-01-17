@@ -1,18 +1,10 @@
 // huh... This is just simple test case
 
 int a = 1;
-int b;
 
 
-parallel(2)
-{
-      assume(a == 0);
-
-}
-{
-      a++;
-      
+while (?) {
+     a++;
 }
 
-
-assert(a != 0);
+assert(a >= 2);
