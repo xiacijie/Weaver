@@ -27,8 +27,15 @@ int main(int argc , char *argv[]) {
     Program program = Program();
     program.init(config.fileName);
 
-    LoopingTreeAutomataVerifier c(&program);
-    c.verify();
+    if (config.verifier == VerifierType::lta) {
+        LoopingTreeAutomataVerifier v(&program);
+        v.verify();
+    }
+    else {
+        FiniteAutomataVerifier v(&program);
+        v.verify();
+    }
+    
 
 	return 0;
 }

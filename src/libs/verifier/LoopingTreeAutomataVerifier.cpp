@@ -3,6 +3,7 @@
 #include "MathSAT.h"
 #include "Yices.h"
 #include "ProofAutomata.h"
+#include "Config.h"
 
 #define COUNTER_EXAMPLE_SELECTION 0
 
@@ -10,9 +11,7 @@ using namespace weaver;
 using namespace std;
 using namespace util;
 
-
-using clo = std::chrono::system_clock;
-using second = std::chrono::duration<double>;
+extern Config config;
 
 bool LoopingTreeAutomataVerifier::verify() {
     cout << "Start verifying... " << endl;
@@ -35,8 +34,15 @@ bool LoopingTreeAutomataVerifier::verify() {
         DFA* DProof = proof.NFAToDFA(program->getAlphabet());
 
         cout << "Getting Error Trace..." << endl;
+        
+        set<Trace> errorTraceSet;
 
-        auto errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
+        if (config.antiChain) {
+            errorTraceSet = proofCheckWithAntiChains(cfg, DProof);
+        }
+        else {
+            errorTraceSet = proofCheck(cfg, DProof);
+        }
 
         delete DProof;
 

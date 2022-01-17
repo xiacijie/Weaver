@@ -8,7 +8,8 @@ using namespace util;
 namespace weaver {
 
     const string helpMessage = "Usage: ./weaver -f <filename> "
-        "-v <parallel/sequential> "
+        "-v <lta/normal> "
+        "-a <true/false>"
         "-l <none/error/warn/info/debug/verbose>";
 
     enum Settings {
@@ -16,8 +17,10 @@ namespace weaver {
     }; 
 
     enum VerifierType { 
-        parallel, sequential
+        lta, normal
     };
+
+    
 
     class Config {
         public: 
@@ -27,6 +30,8 @@ namespace weaver {
             VerifierType verifier;
             LogLevel logLevel; 
             string fileName; 
+            bool antiChain;
+            
         private: 
             void setDefaults(); 
 

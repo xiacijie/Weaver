@@ -19,7 +19,7 @@ Config::Config(int argc, char *argv[]) {
     setDefaults();
 
     // Parse command line options:
-    while (opt = getopt(argc, argv, "f:v:l:")) {
+    while (opt = getopt(argc, argv, "f:v:a:l:")) {
         switch(opt) {
             case 'f':
                 parameter = optarg;
@@ -27,10 +27,10 @@ Config::Config(int argc, char *argv[]) {
                 continue;
             case 'v':
                 parameter = optarg;
-                if (parameter == "parallel") {
-                    verifier = VerifierType::parallel;
-                } else if (parameter == "sequential") {
-                    verifier = VerifierType::sequential;
+                if (parameter == "lta") {
+                    verifier = VerifierType::lta;
+                } else if (parameter == "normal") {
+                    verifier = VerifierType::normal;
                 }
                 continue;
             case 'l':
@@ -53,6 +53,21 @@ Config::Config(int argc, char *argv[]) {
                     exit(1);
                 }
                 continue;
+            case 'a':
+                if (verifier != VerifierType::lta) {
+                    logger.error("Only LTA can use antiChain option!");
+                    exit(1);
+                }
+              
+                parameter = optarg;
+                if (parameter == "true") {
+                    antiChain = true;
+                }
+                else {
+                    antiChain = false;
+                }
+                continue;
+                
             default:
                 logger.error(helpMessage);
                 exit(1);
@@ -70,11 +85,11 @@ string Config::toString() {
     string l;
 
     switch(verifier) {
-        case VerifierType::parallel:
-            v = "parallel";
+        case VerifierType::lta:
+            v = "lta";
             break; 
-        case VerifierType::sequential:
-            v = "sequential";
+        case VerifierType::normal:
+            v = "normal";
             break; 
         default:
             v = "";
@@ -110,7 +125,7 @@ string Config::toString() {
 
 void Config::setDefaults() {
     // Set defaults:
-    verifier = VerifierType::sequential;
+    verifier = VerifierType::normal;
     logLevel = LogLevel::info;
     fileName = "";
 }
