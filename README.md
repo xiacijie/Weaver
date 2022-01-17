@@ -2,6 +2,7 @@
 Automated Hypersafety Verification in C++
 
 This project uses SMTInterpol, MathSAT and Yices as the SMT solvers. 
+
 The binaries for those three SMT solvers are provided under the `src/bin` directory.
 
 ## Environment Requirements:
