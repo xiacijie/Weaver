@@ -70,10 +70,10 @@ void Program::init(InputType t, ANTLRInputStream input) {
     ASTBuilder builder(this, tree);
     builder.build();
 
-    logger.debug("# AST:\n");
+    logger.debug("# AST:");
     logger.debug(_ast.toString() + "\n");
 
-    logger.debug("# Variable Table: \n");
+    logger.debug("# Variable Table:");
     logger.debug(_vTable.toString() + "\n");
 
     logger.debug("# Alphabet Size: " + to_string(getAlphabet().size()) + "\n");
@@ -81,14 +81,14 @@ void Program::init(InputType t, ANTLRInputStream input) {
     CFGBuilder cfgBuilder(this);
     cfgBuilder.build();
     
-    logger.debug("# Control Flow Automata: \n");
+    logger.debug("# Control Flow Automata:");
     logger.debug(_cfg.toString() + "\n");
     
     // only looping tree automata needs the independence relations
     if (config.verifier == VerifierType::lta) {
         buildDependenceRelation();
-        logger.debug(independentStatementsToString() + "\n");
-        logger.debug(dependentStatementsToString() + "\n");
+        logger.debug(independentStatementsToString());
+        logger.debug(dependentStatementsToString());
     }
 }
 

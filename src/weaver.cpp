@@ -13,8 +13,9 @@ extern Config config;
 extern Logger logger;
 
 int main(int argc , char *argv[]) {
-    logger = Logger(config.logLevel);
+    
     config = Config(argc, argv);
+    logger = Logger(config.logLevel);
     
     if (config.fileName.empty()) {
         logger.error(helpMessage);
