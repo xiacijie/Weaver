@@ -30,7 +30,7 @@ The binaries for those three SMT solvers are provided under the `src/bin` direct
 
 ## Default options:
 
-If no options other that `-f` is specified, Weaver uses `lta` and the antichain algorithm for proof checking. `mathsat` for craig interpolations and independence relation checking. `yices` for checking validity of hoare tripes. `info` for the log level. 
+If no options other than `-f` is specified, Weaver uses `lta` and the antichain algorithm for proof checking. `mathsat` for craig interpolations and independence relation checking. `yices` for checking validity of hoare tripes. `info` for the log level. 
 
 ## Note:
 This project uses ANTLR4 as the front end parsing framework. If any error regarding ANTLR4 happens, visit https://www.antlr.org for solution. 
