@@ -1,9 +1,9 @@
 # Weaver
 Automated Hypersafety Verification in C++
 
-This project uses SMTInterpol, MathSAT and Yices as the SMT solvers. 
+This project uses `SMTInterpol`, `MathSAT` and `Yices` as the SMT solvers.
 
-The binaries for those three SMT solvers are provided under the `src/bin` directory.
+The binaries for those three SMT solvers are provided under the `src/bin` directory so you don't need to install them separately. 
 
 ## Environment Requirements:
 1. Java 11
@@ -24,8 +24,8 @@ The binaries for those three SMT solvers are provided under the `src/bin` direct
 2. `-v` takes either `normal` or `lta`, which means the verify algorithm will use determinstic finite automata or looping tree automata to verify the program.
 3. `-a` takes either `true` or `false`, which means whether to use the antichain algorithms for the looping tree automata proof checking.
 4. `-I` takes `<smtinterpol/mathsat>`. This specifies the SMT solver used for craig interpolation.
-5. `-i` takes `<smtinterpol/mathsat/yices>`. This specifies the SMT solver used for checking indepence relations of statements.
-6. '-h' takes `<smtinterpol/mathsat/yices>`. This specifies the SMT solver used for checking the validity of hoare triples during proof construction.
+5. `-i` takes `<smtinterpol/mathsat/yices>`. This specifies the SMT solver used for checking independence relations of statements.
+6. `-h` takes `<smtinterpol/mathsat/yices>`. This specifies the SMT solver used for checking the validity of hoare triples during proof construction.
 7. `-l` takes `none/error/warn/info/debug/verbose` 
 
 ## Default options:
