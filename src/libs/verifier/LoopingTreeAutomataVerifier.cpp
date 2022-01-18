@@ -35,6 +35,9 @@ bool LoopingTreeAutomataVerifier::verify() {
         DFA* DProof = _proof.NFAToDFA(program->getAlphabet());
         _proofDeterTime += timer.stop();
 
+        logger.debug("# Current Proof DFA:");
+        logger.debug(DProof->toString(_program->getAlphabet()));
+
         logger.info(getErrorTraceHeader());
         
         timer.start();
@@ -252,9 +255,62 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheck(NFA* cfg, DFA* proof) {
     return {};
 }
 
+string LoopingTreeAutomataVerifier::inactivityProofToString(
+        const map<IntersectionState, map<Statement *, IntersectionState>> &inactivityProof) {
+    stringstream ss;
+
+    ss << "# Inactivity Proof: " << endl;
+    for (const auto& it : inactivityProof) {
+        auto f = it.first;
+
+        ss <<"From: (" << get<0>(f.first) << "," << f.second << ")" << endl;
+
+        for (const auto& it2 : it.second) {
+
+            string stmt = "NULL";
+            if (it2.first != nullptr)
+                stmt = it2.first->toString();
+
+            ss << "    " << "takes: " << stmt << " ";
+            auto t = it2.second;
+            ss << " to (" << get<0>(t.first) << "," << t.second << ")" << endl;
+        }
+    }
+
+    return ss.str();
+}
+
+string LoopingTreeAutomataVerifier::inactivityProofToString(
+        const map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof) {
+
+    stringstream ss;
+    ss << "# Inactivity Proof: " << endl;
+    for (const auto &it : inactivityProof) {
+        auto f = it.first;
+        ss << "From: (" << get<0>(f) << "," << get<2>(f) << ")" << endl;
+        for (const auto& it2: it.second) {
+            for (const auto& it3 : it2.second) {
+                string stmt = "NULL";
+
+                if (it3.first != nullptr) {
+                    stmt = it3.first->toString();
+                }
+
+                ss << "    " << "takes: " << stmt << " ";
+                auto t = it3.second;
+
+                ss << " to (" << get<0>(t.first) << "," << t.second <<")"<< endl;
+            }
+        }
+    }
+    return ss.str();
+}
+
 set<Trace> LoopingTreeAutomataVerifier::getCounterExamples(
         const map <IntersectionState, map<Statement *, IntersectionState>> &inactivityProof,
         IntersectionState& initialState) {
+
+    logger.debug(inactivityProofToString(inactivityProof));
 
     set<Trace> counterExamples;
     queue<pair<IntersectionState, Trace>> q;
@@ -342,6 +398,12 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *
             for (const auto& s2: proof->getStates()) {
 
                 T t(s1, false, s2);
+
+                //this state already in the inactive states, skip
+                if (X.find(t) != X.end()) {
+                    continue;
+                }
+
                 set<set<Statement*>> X_meet;
                 X_meet.insert(possibleStatementsInSleepSet);
 
@@ -377,9 +439,9 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *
                                         X_join.clear();
                                         X_join.insert(temp.begin(), temp.end());
 
-                    
                                         LTAState nextLTAState(s1_next, false, S);
                                         IntersectionState nextIntersectionState(nextLTAState, s2_next);
+
                                         addToInactivityProof(inactivityProof, t, S, statement, nextIntersectionState);
                                     }
                                     else {
@@ -468,6 +530,7 @@ set<Trace> LoopingTreeAutomataVerifier::proofCheckWithAntiChains(NFA *cfg, DFA *
 void LoopingTreeAutomataVerifier::addToInactivityProof(map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof,
                                                    T &fromState, const set<Statement *> &S, Statement *statement,
                                                    IntersectionState &toState) {
+
     const auto& it = inactivityProof.find(fromState);
     if (it != inactivityProof.end()) {
         bool isSubsumedByAny = false;
@@ -501,6 +564,8 @@ void LoopingTreeAutomataVerifier::addToInactivityProof(map<T, map<set<Statement 
 
 set<Trace> LoopingTreeAutomataVerifier::getCounterExamples(
         const map<T, map<set<Statement *>, map<Statement *, IntersectionState>>> &inactivityProof, T &initialState) {
+
+    logger.debug(inactivityProofToString(inactivityProof));
 
     set<Trace> counterExamples;
     queue<pair<IntersectionState, Trace>> q;

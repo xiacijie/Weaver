@@ -19,12 +19,6 @@ bool VariableTable::isVarInitialized(const string &varName) {
     return _varInitializationTable[varName];
 }
 
-bool VariableTable::anyUninitializedVar() {
-    return any_of(_varInitializationTable.begin(), _varInitializationTable.end(), [=](const auto& it) {
-       return it.second == false;
-    });
-}
-
 DataType VariableTable::getVarType(const string &varName) {
     return _varTable[varName];
 }

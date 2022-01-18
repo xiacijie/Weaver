@@ -182,10 +182,11 @@ string Config::toString() {
 
 
     return "VERIFIER:       " + v +
+           "\nANTICHAIN:      " + (antiChain ? "YES" : "NO") +
            "\nLOG LEVEL:      " + l +
-           "\nINTERPOL SMT SOLVER:      " + I + 
-           "\nINDEP SMT SOLVER:      " + i + 
-           "\nHOARE SMT SOLVER:      " + h + 
+           "\nINTERPOL SMT SOLVER:      " + I +
+           "\nINDEP SMT SOLVER:      " + i +
+           "\nHOARE SMT SOLVER:      " + h +
            "\nINPUT FILE:     " + fileName;
 }
 

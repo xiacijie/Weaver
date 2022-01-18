@@ -17,8 +17,6 @@ namespace weaver {
         bool isVarDeclared(const string &varName);
         bool isVarInitialized(const string &varName);
 
-        bool anyUninitializedVar();
-
         unordered_map<string, DataType>& getGlobalVariables();
 
         string toString();

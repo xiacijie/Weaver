@@ -35,6 +35,9 @@ namespace weaver {
         set<Trace> getCounterExamples(const  map<T, map<set<Statement*>, map<Statement*, IntersectionState>>>& inactivityProof,
                                       T& initialState);
 
+        string inactivityProofToString(const map<IntersectionState, map<Statement*, IntersectionState>>& inactivityProof);
+        string inactivityProofToString(const  map<T, map<set<Statement*>, map<Statement*, IntersectionState>>>& inactivityProof);
+
         void alphabetPowerSetGenerationHelper(unordered_set<Statement *>::const_iterator it,
                                                 const Alphabet &alphabet,
                                                 set<Statement*> tempSet,
