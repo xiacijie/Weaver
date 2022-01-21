@@ -2,5 +2,14 @@
 
 int a = 1;
 
+parallel(2)
+{
+    a++;
+    a = 3;
+}
+{
+    a--;
+    a = 2;
+}
 
-assert(a >= 1);
+assert(a != 0);

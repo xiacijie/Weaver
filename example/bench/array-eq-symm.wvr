@@ -1,0 +1,26 @@
+int A[];
+int B[];
+
+int i_AB = 0, i_BA = 0;
+int An, Bn;
+bool break_AB = false, break_BA = false;
+
+parallel(2)
+{
+    while(i_AB < An && i_AB < Bn && !break_AB) {
+        if (A[i_AB] == B[i_AB]) {
+            i_AB ++;
+            break_AB = true;
+        }
+    }
+}
+{
+    while (i_BA < Bn && i_BA < An && !break_BA) {
+        if (B[i_AB] == A[i_BA]) {
+            i_BA++;
+            break_BA = true;
+        }
+    }
+}
+
+assert(i_AB == i_BA);
