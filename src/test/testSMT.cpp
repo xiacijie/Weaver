@@ -1,7 +1,7 @@
-#include "MathSAT.h"
 #include "Program.h"
 #include "ASTNode.h"
 #include <catch2/catch_test_macros.hpp>
+#include "MathSAT.h"
 
 using namespace std;
 using namespace weaver;
@@ -29,27 +29,27 @@ TEST_CASE( "Test SMT independence checking", "[smt]" ) {
 
     auto b_eq_1 = ASTNode::create(NodeType::Assignment, DataType::NoType, &p, {id_b, const1});
 
-    auto solver = p.getMathSAT();
+    MathSAT solver(&p.getVariableTable());
 
 
     SECTION( "a = a + 1; & a = a - 1;" ) {
         auto s1 = Statement::create(a_eq_a_plus_1, &p, 1);
         auto s2 = Statement::create(a_eq_a_minus_1, &p, 2);
-        bool ind = solver->checkIndependenceRelation(s1, s2);
+        bool ind = solver.checkIndependenceRelation(s1, s2);
         REQUIRE(ind == true);
     }
 
     SECTION( "a = 1; & a = 2;" ) {
         auto s1 = Statement::create(a_eq_1, &p, 1);
         auto s2 = Statement::create(a_eq_2, &p, 2);
-        bool ind = solver->checkIndependenceRelation(s1, s2);
+        bool ind = solver.checkIndependenceRelation(s1, s2);
         REQUIRE(ind == false);
     }
 
     SECTION( "a = a + 1; & b = 1;" ) {
         auto s1 = Statement::create(a_eq_a_plus_1, &p, 1);
         auto s2 = Statement::create(b_eq_1, &p, 2);
-        bool ind = solver->checkIndependenceRelation(s1, s2);
+        bool ind = solver.checkIndependenceRelation(s1, s2);
         REQUIRE(ind == true);
     }
 }

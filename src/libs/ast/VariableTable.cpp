@@ -23,10 +23,6 @@ DataType VariableTable::getVarType(const string &varName) {
     return _varTable[varName];
 }
 
-unordered_map<string, DataType>& VariableTable::getGlobalVariables() {
-    return _varTable;
-}
-
 bool VariableTable::isVarDeclared(const string &varName) {
     return _varTable.find(varName) != _varTable.end();
 }

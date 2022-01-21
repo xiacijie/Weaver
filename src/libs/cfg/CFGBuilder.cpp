@@ -36,7 +36,7 @@ uint32_t CFGBuilder::statementHandleDispatch(ASTNode *node, uint32_t currentStat
         return iterateThroughStatements(node, currentState);
     }
 
-    if (node->isAssign() || node->isAssume() || node->isAssert() || node->isAtomic()) {
+    if (node->isAssign() || node->isAssume() || node->isAssert() || node->isAtomic() || node->isStore() || node->isSelect()) {
         currentState = handleStatementWithNoControlFlow(node, currentState);
     }
     else if (node->isConditional()) {

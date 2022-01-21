@@ -2,6 +2,8 @@
 #include "SMTInterpol.h"
 #include "Program.h"
 #include "Config.h"
+#include "MathSAT.h"
+#include "Yices.h"
 
 using namespace weaver;
 

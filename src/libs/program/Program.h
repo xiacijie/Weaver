@@ -6,9 +6,6 @@
 #include "AST.h"
 #include "NFA.h"
 #include "antlr4-runtime.h"
-#include "MathSAT.h"
-#include "Yices.h"
-#include "SMTInterpol.h"
 #include "Config.h"
 
 using namespace std;
@@ -27,10 +24,7 @@ namespace weaver {
 
     public:
         Program() :
-            _totalThreads(0),
-            _SMTInterpol(&_vTable),
-            _MathSAT(&_vTable),
-            _Yices(&_vTable)
+            _totalThreads(0)
             {}
 
         ~Program();
@@ -39,9 +33,6 @@ namespace weaver {
         AST& getAST() { return _ast; }
         NFA& getCFG() { return _cfg; }
         Alphabet& getAlphabet() { return _alphabet; }
-        SMTInterpol* getSMTInterpol() { return &_SMTInterpol; }
-        Yices* getYices() { return &_Yices; }
-        MathSAT* getMathSAT() { return &_MathSAT; }
 
         void init(string); // filename 
         void init(InputType, string); // code 
@@ -102,11 +93,6 @@ namespace weaver {
 
         // disjoint statements by their thread number
         unordered_map<uint16_t, unordered_set<Statement*>> _statementsByThread;
-
-        //theorem provers
-        SMTInterpol _SMTInterpol;
-        Yices _Yices;
-        MathSAT _MathSAT;
     };
 
 }

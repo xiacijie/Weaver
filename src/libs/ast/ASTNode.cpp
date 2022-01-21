@@ -16,15 +16,15 @@ bool ASTNode::operator==(const ASTNode &other) const {
         return false;
     }
 
-    if (isAssign()) {
-        return *getChild(0) == *other.getChild(0)
-        && *getChild(1) == *other.getChild(1);
-    }
+    // if (isAssign()) {
+    //     return *getChild(0) == *other.getChild(0)
+    //     && *getChild(1) == *other.getChild(1);
+    // }
 
-    if (getDataType() == DataType::NoType
-        && other.getDataType() == DataType::NoType) {
-        return false;
-    }
+    // if (getDataType() == DataType::NoType
+    //     && other.getDataType() == DataType::NoType) {
+    //     return false;
+    // }
 
     if (getNumChildren() == 0) {
         if (isId()) {
@@ -184,6 +184,14 @@ string ASTNode::getReadableText() const {
 
     if (isId()) {
         return getIdName();
+    }
+
+    if (isStore()) {
+        return getChild(0)->getReadableText() + "[" + getChild(1)->getReadableText() + "]" + " = " + getChild(2)->getReadableText();
+    }
+
+    if (isSelect()) {
+        return getChild(0)->getReadableText() + "[" + getChild(1)->getReadableText() + "]";
     }
 
     if (isConstant()){

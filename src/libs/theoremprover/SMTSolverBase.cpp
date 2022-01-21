@@ -1,8 +1,12 @@
 #include "SMTSolverBase.h"
+#include "Log.h"
 #include <iostream>
 
 using namespace weaver;
 using namespace std;
+using namespace util;
+
+extern Logger logger;
 
 string SMTSolverBase::getFormula(ASTNode* node, SSANumberingTable& table, bool isLeftValue) const  {
     // Left value is the left-hand side of an assignment statement
@@ -10,6 +14,19 @@ string SMTSolverBase::getFormula(ASTNode* node, SSANumberingTable& table, bool i
     if (isLeftValue) {
         string varName = node->getIdName();
         table.declareDefinedVar(varName);
+    }
+
+    if (node->isStore()) {
+        string array = getFormula(node->getChild(0), table);
+        string index = getFormula(node->getChild(1), table);
+        string value = getFormula(node->getChild(2), table);
+        return getStoreFormula(array, index, value);
+    }
+
+    if (node->isSelect()) {
+        string array = getFormula(node->getChild(0), table);
+        string index = getFormula(node->getChild(1), table);
+        return getSelectFormula(array, index);
     }
 
     if (node->isNoAction()) {
@@ -106,17 +123,10 @@ string SMTSolverBase::getFormula(ASTNode* node, SSANumberingTable& table, bool i
             return getOrFormula(left, right);
         default:
             cerr << NodeTypeLabels[node->getNodeType()] << endl;
-            assert(false && "Error in getFormula!\n");
+            assert(false && "Unhandled node!\n");
     }
 }
 
-string SMTSolverBase::setEntailmentOptions() const {
-    stringstream ss;
-    ss << setOption("print-success", getFalse());
-    ss << setLogic("QF_AUFLIA");
-    ss << endl;
-    return ss.str();
-}
 
 string SMTSolverBase::setCheckHoareTripeOptions() const {
     stringstream ss;
@@ -183,6 +193,9 @@ Interpolants SMTSolverBase::generateInterpols(const Trace &trace) const {
 
     SMTFile << getInterpolants(labels) << endl;
     string result = exec(getCommand(SMTFile.str()));
+
+    logger.debug(SMTFile.str());
+    logger.debug(result);
 
     return processInterpolationResult(result);
 }
@@ -480,6 +493,9 @@ bool SMTSolverBase::checkHoareTripe(const string &pre, Statement *statement, con
     SMTFile << checkSat();
 
     string result = exec(getCommand(SMTFile.str()));
+
+    logger.debug(SMTFile.str());
+    logger.debug(result);
   
     if (result.substr(0, 6) == "(error") {
         assert(false && "Error with the theorem prover!\n");
@@ -504,59 +520,6 @@ string SMTSolverBase::exec(const string &command) const {
             result += buffer;
     }
     return result;
-}
-
-Interpolants SMTSolverBase::extractInterpolants(const string &line) const {
-    Interpolants interpolants;
-    interpolants.push_back("true");
-
-    // we need extract the interpolants from the interpolants string
-    int searchStartIndex = 0;
-    int searchEndIndex = 0;
-    // the stack that stores the open and end parens
-    vector<char> parenStack;
-    while (searchEndIndex < line.size()) {
-        while (line.at(searchStartIndex) == ' ')
-            searchStartIndex ++;
-
-        char currentChar = line.at(searchEndIndex);
-
-        if (currentChar == '(') {
-            parenStack.push_back('(');
-        }
-        else if (currentChar == ')') {
-            if (parenStack.empty() || parenStack.at(parenStack.size()-1) != '(') {
-                cerr << "Stack size: " << parenStack.size() << endl;
-                cerr << "SearchEndIndex: " << searchEndIndex << endl;
-                assert(false && "Error in popping parenStack!\n");
-            }
-            parenStack.pop_back();
-
-            if (parenStack.empty()) {
-                string intpl = line.substr(searchStartIndex, searchEndIndex-searchStartIndex+1);
-                removeSSANumberingPortion(intpl);
-                interpolants.push_back(intpl);
-                searchStartIndex = searchEndIndex + 1;
-            }
-
-        }
-        else if (currentChar == 't' && parenStack.empty()) {
-            interpolants.push_back(line.substr(searchStartIndex, 4));
-            searchEndIndex += 3;
-            searchStartIndex = searchEndIndex + 1;
-        }
-        else if (currentChar == 'f' && parenStack.empty()) {
-            interpolants.push_back(line.substr(searchStartIndex, 5));
-            searchEndIndex += 4;
-            searchStartIndex = searchEndIndex + 1;
-        }
-
-        searchEndIndex ++;
-    }
-
-    interpolants.push_back("false");
-
-    return interpolants;
 }
 
 void SMTSolverBase::removeSSANumberingPortion(string& interpolant) const{

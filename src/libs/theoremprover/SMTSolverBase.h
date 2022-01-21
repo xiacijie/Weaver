@@ -57,7 +57,6 @@ namespace weaver {
         bool checkHoareTripe(const string& pre, Statement* statement, const string& post) const;
     protected:
         virtual string setInterpolationOptions() const { assert(false && "Not implemented!"); }
-        virtual string setEntailmentOptions() const;
         virtual string setCheckHoareTripeOptions() const;
         virtual string setCheckIndependenceOptions() const;
 
@@ -128,6 +127,12 @@ namespace weaver {
         virtual inline string getImplyFormula(const string& formula1, const string& formula2) const
         { return parenEnclose("=> " + formula1 + " " + formula2); }
 
+        virtual inline string getStoreFormula(const string& array, const string& index, const string& value) const  
+        { return getEqFormula(array, parenEnclose("store " + array + " " + index + " " + value)); }
+
+        virtual inline string getSelectFormula(const string& array, const string& index) const  
+        { return parenEnclose("select " + array + " " + index); }
+
         virtual inline string getTrue() const { return "true"; }
         virtual inline string getFalse() const { return "false"; }
         virtual inline string checkSat() const { return parenEnclose("check-sat"); }
@@ -145,8 +150,6 @@ namespace weaver {
 
         // we do not want the interpolants have ssa numberings. So remove them
         virtual void removeSSANumberingPortion(string& interpolant) const;
-
-        virtual Interpolants extractInterpolants(const string& line) const;
 
         // This is for executing an arbitrary command on the system
         string exec(const string &command) const;

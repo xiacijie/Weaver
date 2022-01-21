@@ -113,12 +113,12 @@ target_link_libraries(testUtil PRIVATE
 
 target_link_libraries(testSMT PRIVATE
         Catch2::Catch2WithMain
+        program
         antlr4_static
         theoremprover
         ast 
         cfg 
         automata
-        program 
         )
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

@@ -10,6 +10,10 @@
 #include "CFGBuilder.h"
 #include "String.h"
 #include "Log.h"
+#include "SMTInterpol.h"
+#include "Yices.h"
+#include "SMTInterpol.h"
+#include "MathSAT.h"
 
 using namespace weaver;
 using namespace std;
