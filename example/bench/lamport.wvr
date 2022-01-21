@@ -1,0 +1,40 @@
+bool e1 = false, e2 = false;
+int n1 = 0, n2 = 0, tmp1, tmp2;
+int f[];
+int i, j, i1, i2;
+
+assume(i == j);
+
+parallel(3) 
+{
+    e1 = true;
+    tmp1 = n2;
+    n1 = tmp1 + 1;
+    e1 = false;
+    assume(!e2);
+    assume(n2 == 0 || n2 >= n1);
+    i1 = i;
+    i = f[i1];
+    n1 = 0;
+}
+{
+    e2 = true;
+    tmp2 = n1;
+    n2 = tmp2 + 1;
+    e2 = false;
+
+    assume(!e1);
+    assume(n1 == 0 || n1 > n2);
+
+    i2 = i;
+    i = f[i2];
+
+    n2 = 0;
+
+}
+{
+    j = f[j];
+    j = f[j];
+}
+
+assert(i == j);

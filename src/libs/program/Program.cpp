@@ -80,10 +80,11 @@ void Program::init(InputType t, ANTLRInputStream input) {
     logger.debug("# Variable Table:");
     logger.debug(_vTable.toString() + "\n");
 
-    logger.debug("# Alphabet Size: " + to_string(getAlphabet().size()) + "\n");
-    
+
     CFGBuilder cfgBuilder(this);
     cfgBuilder.build();
+
+    logger.debug("# Alphabet Size: " + to_string(getAlphabet().size()) + "\n");
     
     logger.debug("# Control Flow Automata:");
     logger.debug(_cfg.toString() + "\n");

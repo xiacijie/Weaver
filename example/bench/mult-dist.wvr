@@ -8,26 +8,26 @@ assume(a >=0 && b >= 0 && c >= 0);
 parallel(3)
 {
     while (i1 < a) {
-        atomic {
+        //atomic {
             x1 = x1 + c;
             i1++;
-        }
+        //}
     }
 }
 {
     while (i2 < b) {
-        atomic {
+        //atomic {
             x2 = x2 + c;
             i2++;
-        }
+        //}
     }
 }
 {
      while (i3 < a + b) {
-        atomic {
+        //atomic {
             x3 = x3 + c;
             i3++;
-        }
+        //}
      }
 }
 

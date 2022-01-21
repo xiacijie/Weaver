@@ -1,37 +1,25 @@
 int f[];
-int i1 = 0, x1 = 0, i2 = 0, x2 = 0, n = 0;
+int i1 = 0, x1 = 0, i2 = 0, x2 = 0, n;
 
 parallel(2)
 {
-
+    while (i1 < 2*n) {
+        atomic {
+            x1 = f[x1];
+            i1++;
+        }
+    }
 }
 {
-    
+    while (i2 < 2*n) {
+        atomic {
+            x2 = f[x2];
+            i2++;
+            x2 = f[x2];
+            i2++;
+        }
+    }
 }
 
+assert(x1 == x2);
 
-
-(var f (Int) Int)
-(var i1 x1 i2 x2 n Int)
-
-(assume (= i1 i2 x1 x2 0))
-
-(par
-  (seq
-    (loop
-      (atomic
-        (assume (< i1 (* 2 n)))
-        (set! x1 (f x1))
-        (set! i1 (+ i1 1))))
-    (assume (not (< i1 (* 2 n)))))
-  (seq
-    (loop
-      (atomic
-        (assume (< i2 (* 2 n)))
-        (set! x2 (f x2))
-        (set! i2 (+ i2 1))
-        (set! x2 (f x2))
-        (set! i2 (+ i2 1))))
-    (assume (not (< i2 (* 2 n))))))
-
-(assume (not (= x1 x2)))
